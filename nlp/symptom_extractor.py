@@ -1,0 +1,191 @@
+"""
+Extractor de síntomas de texto del paciente usando regex y NLP.
+Procesa respuestas del paciente sobre dolor, picor, cambios, etc.
+"""
+
+import re
+
+
+# Patrones regex para cada síntoma
+SYMPTOM_PATTERNS = {
+    "dolor": {
+        "positive": [
+            r'\b(sí|si)\b.*\b(du[eé]le|dolor|molest[ia]a?)\b',
+            r'\b(du[eé]le|dolor|molest[ia]a?|escuece|arde)\b',
+            r'\b(me\s+duele|tengo\s+dolor|siento\s+dolor)\b',
+            r'\b(bastante|mucho|algo)\s+(dolor|molestia)\b',
+        ],
+        "negative": [
+            r'\b(no)\b.*\b(du[eé]le|dolor|molest)\b',
+            r'\b(no\s+me\s+duele)\b',
+            r'\b(nada\s+de\s+dolor)\b',
+            r'\b(sin\s+dolor)\b',
+        ],
+    },
+    "picor": {
+        "positive": [
+            r'\b(sí|si)\b.*\b(pica|pic[ao]r|escozor|comez[oó]n)\b',
+            r'\b(pica|pic[ao]r|escozor|comez[oó]n|ras[ck]a)\b',
+            r'\b(me\s+pica|tengo\s+picor)\b',
+            r'\b(a\s+veces\s+pica)\b',
+        ],
+        "negative": [
+            r'\b(no)\b.*\b(pica|picor|escozor)\b',
+            r'\b(no\s+me\s+pica)\b',
+            r'\b(sin\s+picor)\b',
+        ],
+    },
+    "tamaño": {
+        "positive": [
+            r'\b(sí|si)\b.*\b(crec|cambi|grande)\b',
+            r'\b(ha\s+crecido|está\s+creciendo|más\s+grande)\b',
+            r'\b(cambi[oóa]do?\s+de\s+tamaño)\b',
+            r'\b(aumenta|crece|agrand)\b',
+            r'\b(era\s+más\s+pequeñ[oa])\b',
+        ],
+        "negative": [
+            r'\b(no)\b.*\b(crec|cambi|grande)\b',
+            r'\b(mismo\s+tamaño|no\s+ha\s+cambiado)\b',
+            r'\b(igual\s+que\s+siempre)\b',
+        ],
+    },
+    "sangrado": {
+        "positive": [
+            r'\b(sí|si)\b.*\b(sangr[aoe]|hemorrag)\b',
+            r'\b(sangr[ae]|ha\s+sangrado|sangrado)\b',
+            r'\b(sale\s+sangre|echó\s+sangre)\b',
+            r'\b(a\s+veces\s+sangra)\b',
+        ],
+        "negative": [
+            r'\b(no)\b.*\b(sangr[aoe]|sangrado)\b',
+            r'\b(nunca\s+ha\s+sangrado)\b',
+            r'\b(sin\s+sangrado)\b',
+        ],
+    },
+    "color": {
+        "positive": [
+            r'\b(sí|si)\b.*\b(cambi[oóa]|color|oscurec|oscuro)\b',
+            r'\b(cambi[oóa]do?\s+de\s+color)\b',
+            r'\b(más\s+oscuro|más\s+negro|más\s+rojo)\b',
+            r'\b(colores?\s+diferent|multicolor|irregular)\b',
+            r'\b(antes\s+era\s+\w+\s+ahora\s+es)\b',
+        ],
+        "negative": [
+            r'\b(no)\b.*\b(cambi|color)\b',
+            r'\b(mismo\s+color|color\s+igual)\b',
+        ],
+    },
+    "duracion": {
+        "positive": [
+            r'(\d+)\s*(días?|semanas?|meses?|años?)',
+            r'\b(hace\s+(poco|mucho|tiempo|unos))\b',
+            r'\b(recientemente|reciente|nuevo|últimamente)\b',
+            r'\b(desde\s+hace)\s+\w+',
+            r'\b(siempre|toda\s+la\s+vida|de\s+nacimiento)\b',
+        ],
+        "negative": [],
+    },
+}
+
+
+def extract_symptoms(text):
+    """
+    Extrae síntomas del texto del paciente.
+
+    Args:
+        text: String con la respuesta del paciente
+
+    Returns:
+        dict con cada síntoma y su valor detectado
+    """
+    text_lower = text.lower().strip()
+    results = {}
+
+    for symptom, patterns in SYMPTOM_PATTERNS.items():
+        detected = False
+        is_positive = None
+        matched_pattern = None
+        duration_value = None
+
+        # Comprobar patrones negativos primero
+        for pattern in patterns.get("negative", []):
+            if re.search(pattern, text_lower, re.IGNORECASE):
+                is_positive = False
+                matched_pattern = pattern
+                break
+
+        # Si no hay negativo, buscar positivo
+        if is_positive is None:
+            for pattern in patterns.get("positive", []):
+                match = re.search(pattern, text_lower, re.IGNORECASE)
+                if match:
+                    is_positive = True
+                    matched_pattern = pattern
+                    detected = True
+
+                    # Extraer duración si es el síntoma de duración
+                    if symptom == "duracion":
+                        dur_match = re.search(r'(\d+)\s*(días?|semanas?|meses?|años?)',
+                                              text_lower)
+                        if dur_match:
+                            duration_value = {
+                                "value": int(dur_match.group(1)),
+                                "unit": dur_match.group(2),
+                            }
+                    break
+
+        results[symptom] = {
+            "detected": detected,
+            "positive": is_positive,
+            "duration": duration_value,
+        }
+
+    return results
+
+
+def symptoms_to_vector(symptoms):
+    """
+    Convierte los síntomas extraídos a un vector numérico para el DRL.
+
+    Returns:
+        list de 6 valores (0.0 o 1.0): [dolor, picor, tamaño, sangrado, color, duracion]
+    """
+    keys = ["dolor", "picor", "tamaño", "sangrado", "color", "duracion"]
+    vector = []
+    for key in keys:
+        s = symptoms.get(key, {})
+        if s.get("positive") is True:
+            vector.append(1.0)
+        elif s.get("positive") is False:
+            vector.append(0.0)
+        else:
+            vector.append(-1.0)  # No preguntado aún
+    return vector
+
+
+def get_symptom_summary(symptoms):
+    """Genera un resumen textual de los síntomas detectados."""
+    summary_parts = []
+    labels = {
+        "dolor": "Dolor",
+        "picor": "Picor/escozor",
+        "tamaño": "Cambio de tamaño",
+        "sangrado": "Sangrado",
+        "color": "Cambio de color",
+        "duracion": "Duración",
+    }
+
+    for key, label in labels.items():
+        s = symptoms.get(key, {})
+        if s.get("positive") is True:
+            text = f"✅ {label}: Sí"
+            if s.get("duration"):
+                d = s["duration"]
+                text += f" ({d['value']} {d['unit']})"
+            summary_parts.append(text)
+        elif s.get("positive") is False:
+            summary_parts.append(f"❌ {label}: No")
+        else:
+            summary_parts.append(f"❓ {label}: No evaluado")
+
+    return summary_parts

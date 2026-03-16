@@ -1,0 +1,13 @@
+flask
+flask-socketio
+opencv-python
+numpy
+torch
+torchvision
+gymnasium
+scikit-learn
+matplotlib
+kagglehub
+Pillow
+gunicorn
+eventlet

@@ -1,0 +1,12 @@
+__pycache__/
+*.pyc
+*.pyo
+*.db
+models/*.pth
+models/*.json
+data/ham10000/
+.env
+*.egg-info/
+dist/
+build/
+.cache/

@@ -1,0 +1,489 @@
+/**
+ * DermaScan — Frontend Logic
+ * Camera, Web Speech API, WebSocket, Charts
+ */
+
+const socket = io();
+socket.on('connect', () => console.log('[WS] Conectado'));
+socket.on('training_progress', d => updateTrainingProgress(d));
+socket.on('training_complete', d => onTrainingComplete(d));
+
+// =============================================================================
+// TABS
+// =============================================================================
+function switchTab(name) {
+    document.querySelectorAll('.tab-btn').forEach(b => b.classList.toggle('active', b.dataset.tab === name));
+    document.querySelectorAll('.tab-content').forEach(c => c.classList.toggle('active', c.id === `tab-${name}`));
+    if (name === 'rl') loadAgentStatus();
+    if (name === 'history') loadHistory();
+}
+
+// =============================================================================
+// CAMERA / SCANNER
+// =============================================================================
+let cameraStream = null;
+
+async function initCamera() {
+    try {
+        const video = document.getElementById('cameraVideo');
+        cameraStream = await navigator.mediaDevices.getUserMedia({
+            video: { facingMode: 'environment', width: { ideal: 640 }, height: { ideal: 640 } }
+        });
+        video.srcObject = cameraStream;
+        document.getElementById('cameraOverlay').style.display = 'flex';
+    } catch (e) {
+        console.log('Cámara no disponible:', e.message);
+    }
+}
+
+function capturePhoto() {
+    const video = document.getElementById('cameraVideo');
+    const canvas = document.getElementById('cameraCanvas');
+    const img = document.getElementById('capturedImage');
+
+    canvas.width = video.videoWidth || 640;
+    canvas.height = video.videoHeight || 640;
+    canvas.getContext('2d').drawImage(video, 0, 0);
+
+    const dataUrl = canvas.toDataURL('image/jpeg', 0.85);
+    img.src = dataUrl;
+    img.style.display = 'block';
+    video.style.display = 'none';
+    document.getElementById('cameraOverlay').style.display = 'none';
+
+    sendScan(dataUrl);
+}
+
+function handleFileUpload(e) {
+    const file = e.target.files[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = (ev) => {
+        const img = document.getElementById('capturedImage');
+        img.src = ev.target.result;
+        img.style.display = 'block';
+        document.getElementById('cameraVideo').style.display = 'none';
+        document.getElementById('cameraOverlay').style.display = 'none';
+        sendScan(ev.target.result);
+    };
+    reader.readAsDataURL(file);
+}
+
+async function sendScan(imageData) {
+    const container = document.getElementById('scanResults');
+    container.innerHTML = '<div class="empty-state"><span class="spinner"></span><p>Analizando...</p></div>';
+
+    try {
+        const res = await fetch('/api/scan', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ image: imageData }),
+        });
+        const data = await res.json();
+        if (data.error) { container.innerHTML = `<p>${data.error}</p>`; return; }
+        displayScanResults(data);
+    } catch (e) {
+        container.innerHTML = `<p>Error: ${e.message}</p>`;
+    }
+}
+
+async function scanDemo() {
+    const container = document.getElementById('scanResults');
+    container.innerHTML = '<div class="empty-state"><span class="spinner"></span><p>Generando ejemplo...</p></div>';
+    try {
+        const res = await fetch('/api/scan/demo', { method: 'POST' });
+        const data = await res.json();
+        displayScanResults(data);
+    } catch (e) {
+        container.innerHTML = `<p>Error: ${e.message}</p>`;
+    }
+}
+
+function displayScanResults(data) {
+    const container = document.getElementById('scanResults');
+    const cnn = data.cnn;
+    const abcde = data.abcde;
+    const riskClass = cnn.risk_level === 'maligno' ? 'alto' : cnn.risk_level === 'pre-maligno' ? 'medio' : 'bajo';
+
+    let html = `
+        <div class="cnn-result risk-${riskClass}">
+            <div style="display:flex;justify-content:space-between;align-items:center">
+                <span class="diagnosis-name">${cnn.diagnosis_name}</span>
+                <span class="risk-badge ${riskClass}">${cnn.risk_label} riesgo</span>
+            </div>
+            <div style="margin-top:6px;font-size:0.85rem;color:var(--text-secondary)">
+                Confianza: ${(cnn.confidence * 100).toFixed(1)}%
+                ${cnn.demo_mode ? ' (Demo)' : ''}
+            </div>
+        </div>`;
+
+    // Probability bars
+    html += '<div style="margin-bottom:16px">';
+    const riskColors = { benigno: 'var(--green)', 'pre-maligno': 'var(--orange)', maligno: 'var(--red)' };
+    for (const [code, info] of Object.entries(cnn.probabilities)) {
+        const pct = (info.probability * 100).toFixed(1);
+        const color = riskColors[info.risk] || 'var(--blue)';
+        html += `<div class="prob-bar">
+            <span class="prob-bar-label">${info.name}</span>
+            <div class="prob-bar-track"><div class="prob-bar-fill" style="width:${pct}%;background:${color}"></div></div>
+            <span class="prob-bar-value">${pct}%</span>
+        </div>`;
+    }
+    html += '</div>';
+
+    // ABCDE Analysis
+    const abcdeLetters = [
+        { key: 'asymmetry', letter: 'A', label: 'Asimetría' },
+        { key: 'border', letter: 'B', label: 'Bordes' },
+        { key: 'color', letter: 'C', label: 'Color' },
+        { key: 'diameter', letter: 'D', label: 'Diámetro' },
+        { key: 'evolution', letter: 'E', label: 'Evolución' },
+    ];
+
+    html += '<h3 style="font-size:0.9rem;margin-bottom:8px">Análisis ABCDE</h3>';
+    html += '<div class="abcde-grid">';
+    for (const item of abcdeLetters) {
+        const score = abcde[item.key]?.score || 0;
+        const color = score > 0.6 ? 'var(--red)' : score > 0.3 ? 'var(--orange)' : 'var(--green)';
+        html += `<div class="abcde-item">
+            <div class="abcde-letter" style="color:${color}">${item.letter}</div>
+            <div class="abcde-score" style="color:${color}">${(score * 10).toFixed(1)}</div>
+            <div class="abcde-label">${item.label}</div>
+        </div>`;
+    }
+    html += '</div>';
+
+    // Total ABCDE
+    const totalColor = abcde.total_score > 6 ? 'var(--red)' : abcde.total_score > 3 ? 'var(--orange)' : 'var(--green)';
+    html += `<div style="text-align:center;margin-top:10px;font-size:0.85rem">
+        Puntuación ABCDE total: <strong style="color:${totalColor};font-size:1.1rem">${abcde.total_score}/10</strong>
+    </div>`;
+
+    // Next question from DRL
+    if (data.next_question) {
+        html += `<div class="question-box" style="margin-top:16px">
+            <div class="question-label">Siguiente paso sugerido por IA:</div>
+            <div class="question-text">${data.next_question}</div>
+            <button class="btn btn-accent" onclick="switchTab('nlp')">Ir a consulta por voz →</button>
+        </div>`;
+
+        // Update NLP tab question
+        document.getElementById('questionText').textContent = data.next_question;
+        document.getElementById('btnSpeak').disabled = false;
+        document.getElementById('btnMic').disabled = false;
+    }
+
+    container.innerHTML = html;
+}
+
+// =============================================================================
+// VOICE / SPEECH
+// =============================================================================
+let recognition = null;
+let isListening = false;
+
+function initSpeechRecognition() {
+    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+    if (!SpeechRecognition) {
+        console.log('SpeechRecognition no disponible');
+        return;
+    }
+    recognition = new SpeechRecognition();
+    recognition.lang = 'es-ES';
+    recognition.continuous = false;
+    recognition.interimResults = true;
+
+    recognition.onresult = (e) => {
+        const transcript = Array.from(e.results).map(r => r[0].transcript).join('');
+        document.getElementById('transcriptionText').textContent = transcript;
+        document.getElementById('transcriptionArea').style.display = 'block';
+    };
+    recognition.onend = () => {
+        isListening = false;
+        document.getElementById('btnMic').classList.remove('recording');
+        document.getElementById('micIcon').textContent = '🎙️';
+        document.getElementById('micLabel').textContent = 'Pulsa para hablar';
+    };
+    recognition.onerror = (e) => {
+        console.log('Speech error:', e.error);
+        isListening = false;
+        document.getElementById('btnMic').classList.remove('recording');
+    };
+}
+
+function toggleListening() {
+    if (!recognition) initSpeechRecognition();
+    if (!recognition) {
+        alert('Tu navegador no soporta reconocimiento de voz. Usa el campo de texto.');
+        return;
+    }
+    if (isListening) {
+        recognition.stop();
+    } else {
+        recognition.start();
+        isListening = true;
+        document.getElementById('btnMic').classList.add('recording');
+        document.getElementById('micIcon').textContent = '⏹️';
+        document.getElementById('micLabel').textContent = 'Escuchando... Pulsa para parar';
+    }
+}
+
+function speakQuestion() {
+    const text = document.getElementById('questionText').textContent;
+    if (!text || !window.speechSynthesis) return;
+    const utterance = new SpeechSynthesisUtterance(text);
+    utterance.lang = 'es-ES';
+    utterance.rate = 0.9;
+    speechSynthesis.speak(utterance);
+}
+
+async function processResponse() {
+    const text = document.getElementById('transcriptionText').textContent;
+    if (!text) return;
+    await sendVoiceResponse(text);
+}
+
+async function submitManualResponse() {
+    const text = document.getElementById('manualInput').value.trim();
+    if (!text) return;
+    await sendVoiceResponse(text);
+    document.getElementById('manualInput').value = '';
+}
+
+async function sendVoiceResponse(text) {
+    const container = document.getElementById('nlpResults');
+    container.innerHTML = '<div class="empty-state"><span class="spinner"></span><p>Procesando...</p></div>';
+
+    try {
+        const res = await fetch('/api/voice/process', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ text, question_id: '' }),
+        });
+        const data = await res.json();
+        displayNlpResults(data);
+    } catch (e) {
+        container.innerHTML = `<p>Error: ${e.message}</p>`;
+    }
+}
+
+function displayNlpResults(data) {
+    const container = document.getElementById('nlpResults');
+    let html = '';
+
+    // Correction
+    if (data.correction && data.correction.total_corrections > 0) {
+        html += `<div style="margin-bottom:16px">
+            <h3 style="font-size:0.85rem;margin-bottom:6px">✏️ Corrección (${data.correction.total_corrections})</h3>
+            <div style="font-size:0.85rem;padding:10px;background:#f0fdf4;border:1px solid #bbf7d0;border-radius:8px;color:#166534">${data.correction.corrected}</div>`;
+        data.correction.corrections.forEach(c => {
+            if (c.original && c.original !== c.corrected) {
+                html += `<span class="correction-original">${esc(c.original)}</span>
+                         <span class="correction-fixed">${esc(c.corrected || '∅')}</span> `;
+            }
+        });
+        html += '</div>';
+    }
+
+    // Tokens
+    if (data.tokens) {
+        html += `<div style="margin-bottom:16px">
+            <h3 style="font-size:0.85rem;margin-bottom:6px">🔤 Tokenización (${data.tokens.stats.total_tokens} tokens, ${data.tokens.stats.medical_terms} médicos)</h3>
+            <div class="token-container">`;
+        data.tokens.token_details.forEach(t => {
+            const cls = t.is_medical ? 'medical' : t.is_stopword ? 'stopword' : 'normal';
+            html += `<span class="token ${cls}">${esc(t.token)}</span>`;
+        });
+        html += '</div></div>';
+    }
+
+    // Symptoms
+    if (data.symptom_summary) {
+        const summaryDiv = document.getElementById('symptomSummary');
+        summaryDiv.style.display = 'block';
+        document.getElementById('symptomList').innerHTML =
+            data.symptom_summary.map(s => `<div class="symptom-item">${s}</div>`).join('');
+    }
+
+    // Next question
+    if (data.next_question) {
+        document.getElementById('questionText').textContent = data.next_question;
+    }
+
+    // Final diagnosis
+    if (data.is_final && data.diagnosis) {
+        const d = data.diagnosis;
+        const riskClass = d.risk_level === 'maligno' ? 'alto' : d.risk_level === 'pre-maligno' ? 'medio' : 'bajo';
+        const diagDiv = document.getElementById('diagnosisResult');
+        diagDiv.style.display = 'block';
+        diagDiv.className = `diagnosis-result risk-${riskClass}`;
+        diagDiv.innerHTML = `
+            <div class="big-diagnosis">${d.diagnosis}</div>
+            <span class="risk-badge ${riskClass}">${d.risk_label} riesgo</span>
+            <div style="margin-top:8px;font-size:0.85rem">
+                Confianza CNN: ${(d.confidence * 100).toFixed(1)}% | ABCDE: ${d.abcde_total}/10
+            </div>
+            <div class="recommendation">${d.recommendation}</div>
+            ${d.symptom_summary ? '<div style="margin-top:10px">' + d.symptom_summary.map(s => `<div class="symptom-item">${s}</div>`).join('') + '</div>' : ''}`;
+
+        // Speak recommendation
+        if (window.speechSynthesis) {
+            const msg = new SpeechSynthesisUtterance(d.recommendation.replace(/[⚠️⚡📋✅]/g, ''));
+            msg.lang = 'es-ES'; msg.rate = 0.85;
+            speechSynthesis.speak(msg);
+        }
+    }
+
+    container.innerHTML = html || '<div class="empty-state"><p>Sin cambios detectados</p></div>';
+}
+
+// =============================================================================
+// DRL
+// =============================================================================
+let rewardChart = null, lossChart = null;
+
+function initCharts() {
+    const opts = {
+        responsive: true, maintainAspectRatio: false,
+        plugins: { legend: { labels: { color: '#4a5568', font: { family: 'Inter' } } } },
+        scales: {
+            x: { ticks: { color: '#94a3b8' }, grid: { color: 'rgba(0,0,0,0.05)' } },
+            y: { ticks: { color: '#94a3b8' }, grid: { color: 'rgba(0,0,0,0.05)' } },
+        },
+    };
+    rewardChart = new Chart(document.getElementById('rewardChart'), {
+        type: 'line', data: {
+            labels: [], datasets: [
+                { label: 'Reward', data: [], borderColor: '#0d9488', backgroundColor: 'rgba(13,148,136,0.08)', borderWidth: 2, fill: true, tension: 0.3, pointRadius: 0 },
+                { label: 'Media(50)', data: [], borderColor: '#3b82f6', borderWidth: 2, borderDash: [5, 5], fill: false, tension: 0.3, pointRadius: 0 },
+            ]
+        }, options: opts,
+    });
+    lossChart = new Chart(document.getElementById('lossChart'), {
+        type: 'line', data: {
+            labels: [], datasets: [
+                { label: 'Loss', data: [], borderColor: '#ef4444', backgroundColor: 'rgba(239,68,68,0.1)', borderWidth: 2, fill: true, tension: 0.3, pointRadius: 0 },
+            ]
+        }, options: opts,
+    });
+}
+
+async function startTraining() {
+    const eps = parseInt(document.getElementById('rlEpisodes').value) || 300;
+    document.getElementById('trainBtn').disabled = true;
+    document.getElementById('trainBtn').innerHTML = '<span class="spinner"></span> Entrenando...';
+    document.getElementById('trainingProgress').style.display = 'block';
+    if (rewardChart) { rewardChart.data.labels = []; rewardChart.data.datasets.forEach(d => d.data = []); rewardChart.update('none'); }
+    if (lossChart) { lossChart.data.labels = []; lossChart.data.datasets[0].data = []; lossChart.update('none'); }
+    try { await fetch('/api/rl/train', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ episodes: eps }) }); }
+    catch (e) { document.getElementById('trainBtn').disabled = false; document.getElementById('trainBtn').innerHTML = '🚀 Entrenar'; }
+}
+
+const rwdHist = [];
+function updateTrainingProgress(d) {
+    document.getElementById('progressLabel').textContent = `Episodio ${d.episode + 1}/${d.total_episodes}`;
+    document.getElementById('progressPercent').textContent = `${d.progress}%`;
+    document.getElementById('progressFill').style.width = `${d.progress}%`;
+    document.getElementById('metricEpisode').textContent = d.episode + 1;
+    document.getElementById('metricReward').textContent = d.reward;
+    document.getElementById('metricAvg').textContent = d.avg_reward;
+    document.getElementById('metricEpsilon').textContent = d.epsilon;
+    document.getElementById('metricLoss').textContent = d.loss.toFixed(5);
+    if (d.episode % 5 === 0) {
+        rwdHist.push(d.reward);
+        if (rewardChart) {
+            rewardChart.data.labels.push(d.episode);
+            rewardChart.data.datasets[0].data.push(d.reward);
+            const w = Math.min(50, rwdHist.length);
+            rewardChart.data.datasets[1].data.push(rwdHist.slice(-w).reduce((a, b) => a + b, 0) / w);
+            rewardChart.update('none');
+        }
+        if (lossChart) { lossChart.data.labels.push(d.episode); lossChart.data.datasets[0].data.push(d.loss); lossChart.update('none'); }
+    }
+}
+
+function onTrainingComplete(d) {
+    document.getElementById('trainBtn').disabled = false;
+    document.getElementById('trainBtn').innerHTML = '🚀 Entrenar Agente';
+    document.getElementById('progressLabel').textContent = '✅ Completado';
+    if (d.rewards_history && rewardChart) {
+        rewardChart.data.labels = d.rewards_history.map((_, i) => i);
+        rewardChart.data.datasets[0].data = d.rewards_history;
+        const ma = []; for (let i = 0; i < d.rewards_history.length; i++) { const s = Math.max(0, i - 49); const w = d.rewards_history.slice(s, i + 1); ma.push(w.reduce((a, b) => a + b, 0) / w.length); }
+        rewardChart.data.datasets[1].data = ma;
+        rewardChart.update();
+    }
+    if (d.losses_history && lossChart) {
+        lossChart.data.labels = d.losses_history.map((_, i) => i);
+        lossChart.data.datasets[0].data = d.losses_history;
+        lossChart.update();
+    }
+    loadAgentStatus();
+}
+
+async function evaluateAgent() {
+    document.getElementById('evalResults').style.display = 'block';
+    document.getElementById('evalContent').innerHTML = '<span class="spinner"></span> Evaluando...';
+    try {
+        const r = await (await fetch('/api/rl/evaluate')).json();
+        if (r.error) { document.getElementById('evalContent').textContent = r.error; return; }
+        document.getElementById('evalContent').innerHTML = `
+            <div class="eval-grid">
+                <div class="eval-item"><span class="eval-item-label">Accuracy</span><span class="eval-item-value ${r.accuracy > 70 ? 'good' : r.accuracy > 40 ? 'warn' : 'bad'}">${r.accuracy}%</span></div>
+                <div class="eval-item"><span class="eval-item-label">Risk Acc</span><span class="eval-item-value ${r.risk_accuracy > 70 ? 'good' : 'warn'}">${r.risk_accuracy}%</span></div>
+                <div class="eval-item"><span class="eval-item-label">Avg Reward</span><span class="eval-item-value ${r.avg_reward > 0 ? 'good' : 'bad'}">${r.avg_reward}</span></div>
+                <div class="eval-item"><span class="eval-item-label">Avg Preguntas</span><span class="eval-item-value">${r.avg_questions}</span></div>
+                <div class="eval-item"><span class="eval-item-label">Falsos Neg</span><span class="eval-item-value bad">${r.false_negatives}</span></div>
+                <div class="eval-item"><span class="eval-item-label">Falsos Pos</span><span class="eval-item-value warn">${r.false_positives}</span></div>
+            </div>`;
+    } catch (e) { document.getElementById('evalContent').textContent = e.message; }
+}
+
+async function loadAgentStatus() {
+    try {
+        const d = await (await fetch('/api/rl/status')).json();
+        document.getElementById('agentStatusContent').innerHTML = `
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;font-size:0.82rem">
+                <div>Modelo: <strong>${d.model_loaded ? '✅' : '❌'}</strong></div>
+                <div>Epsilon: <strong>${d.epsilon.toFixed(4)}</strong></div>
+                <div>Steps: <strong>${d.steps_done}</strong></div>
+                <div>Episodios: <strong>${d.episodes_trained}</strong></div>
+            </div>`;
+    } catch (e) { document.getElementById('agentStatusContent').textContent = 'Error'; }
+}
+
+// =============================================================================
+// HISTORY
+// =============================================================================
+async function loadHistory() {
+    try {
+        const data = await (await fetch('/api/history')).json();
+        const list = document.getElementById('historyList');
+        if (!data.length) { list.innerHTML = '<div class="empty-state"><p>Sin consultas</p></div>'; return; }
+        list.innerHTML = data.map(c => {
+            const riskClass = c.risk_level === 'maligno' ? 'alto' : c.risk_level === 'pre-maligno' ? 'medio' : 'bajo';
+            return `<div class="history-item">
+                <div>
+                    <span class="history-diagnosis">${c.cnn_diagnosis || '—'}</span>
+                    <span class="risk-badge ${riskClass}">${riskClass}</span>
+                </div>
+                <span class="history-date">${c.timestamp?.split('T')[0] || '—'}</span>
+            </div>`;
+        }).join('');
+    } catch (e) { document.getElementById('historyList').innerHTML = `<p>${e.message}</p>`; }
+}
+
+// =============================================================================
+// UTILS
+// =============================================================================
+function esc(t) { const d = document.createElement('div'); d.textContent = t; return d.innerHTML; }
+
+// =============================================================================
+// INIT
+// =============================================================================
+document.addEventListener('DOMContentLoaded', () => {
+    initCamera();
+    initSpeechRecognition();
+    initCharts();
+    loadAgentStatus();
+});
