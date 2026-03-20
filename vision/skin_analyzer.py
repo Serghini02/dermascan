@@ -64,23 +64,30 @@ def _segment_mole(image):
     hsv = cv2.cvtColor(image, cv2.COLOR_BGR2HSV)
     gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
 
-    # Método combinado: Otsu + color
-    blurred = cv2.GaussianBlur(gray, (7, 7), 0)
+    # Usar Filtro Bilateral para suavizar el ruido pero preservando bordes
+    blurred = cv2.bilateralFilter(gray, 9, 75, 75)
+    
+    # Combinar Otsu con AdaptiveThreshold para bordes más precisos
     _, otsu = cv2.threshold(blurred, 0, 255, cv2.THRESH_BINARY_INV + cv2.THRESH_OTSU)
+    adaptive = cv2.adaptiveThreshold(blurred, 255, cv2.ADAPTIVE_THRESH_GAUSSIAN_C, 
+                                      cv2.THRESH_BINARY_INV, 15, 4)
+    
+    base_mask = cv2.bitwise_or(otsu, adaptive)
 
-    # Filtrar por saturación y valor (lunares tienden a ser oscuros)
+    # Filtrar por saturación y valor (lunares tienden a ser oscuros y saturados)
     s = hsv[:, :, 1]
     v = hsv[:, :, 2]
-    dark_mask = (v < 180).astype(np.uint8) * 255
-    sat_mask = (s > 20).astype(np.uint8) * 255
+    dark_mask = (v < 185).astype(np.uint8) * 255
+    sat_mask = (s > 15).astype(np.uint8) * 255
 
-    combined = cv2.bitwise_and(otsu, dark_mask)
+    combined = cv2.bitwise_and(base_mask, dark_mask)
     combined = cv2.bitwise_and(combined, sat_mask)
 
-    # Limpiar
-    kernel = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (7, 7))
-    combined = cv2.morphologyEx(combined, cv2.MORPH_CLOSE, kernel, iterations=3)
-    combined = cv2.morphologyEx(combined, cv2.MORPH_OPEN, kernel, iterations=2)
+    # Limpiar morfología conservando estructura
+    kernel_close = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (7, 7))
+    kernel_open = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (3, 3))
+    combined = cv2.morphologyEx(combined, cv2.MORPH_CLOSE, kernel_close, iterations=2)
+    combined = cv2.morphologyEx(combined, cv2.MORPH_OPEN, kernel_open, iterations=1)
 
     return combined
 

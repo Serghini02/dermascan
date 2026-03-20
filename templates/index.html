@@ -55,14 +55,31 @@
                     <canvas id="cameraCanvas" style="display:none"></canvas>
                     <img id="capturedImage" style="display:none" alt="Lunar escaneado">
                     <div class="camera-overlay" id="cameraOverlay">
+                        <!-- Crosshair lines -->
+                        <div class="camera-crosshair camera-crosshair-h"></div>
+                        <div class="camera-crosshair camera-crosshair-v"></div>
+                        <!-- Guide circle -->
                         <div class="camera-circle"></div>
-                        <p>Centra el lunar dentro del círculo</p>
+                        <!-- Center dot -->
+                        <div class="camera-center-dot"></div>
+                        <!-- Label -->
+                        <p class="camera-hint">Centra el lunar en el punto</p>
                     </div>
+                </div>
+
+                <!-- Zoom Controls -->
+                <div class="zoom-controls" style="margin: 10px 0; display: flex; align-items: center; gap: 10px; background: #f8fafc; padding: 12px; border-radius: 12px; border: 1px solid var(--border-light);">
+                    <span style="font-size: 0.82rem; font-weight: 600; color: var(--text-secondary)">🔍 Zoom Óptico/Digital:</span>
+                    <input type="range" id="zoomSlider" min="1" max="3" step="0.1" value="1" style="flex: 1; cursor: pointer; accent-color: var(--teal);" oninput="applyZoom(this.value)">
+                    <span style="font-size: 0.85rem; font-weight: 700; color: var(--teal); width: 30px" id="zoomVal">1.0x</span>
                 </div>
 
                 <div class="scanner-actions">
                     <button class="btn btn-primary btn-large" id="btnCapture" onclick="capturePhoto()">
                         📸 Tomar Foto
+                    </button>
+                    <button class="btn btn-secondary btn-large" id="btnReset" onclick="resetScan()" style="display:none">
+                        🔄 Nueva Foto
                     </button>
                     <label class="btn btn-secondary btn-large" for="fileInput">
                         📁 Subir Imagen
@@ -239,7 +256,7 @@
         </div>
     </section>
 
-    <script src="/static/js/app.js"></script>
+    <script src="/static/js/app.js?v=1.1"></script>
 </body>
 
 </html>

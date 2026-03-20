@@ -1,5 +1,5 @@
 """
-CNN para clasificación de lesiones cutáneas — ResNet18 fine-tuned.
+CNN para clasificación de lesiones cutáneas — EfficientNet-B1 fine-tuned.
 Entrenada con HAM10000 (10015 imágenes, 7 clases).
 """
 
@@ -16,25 +16,29 @@ from config import CNN_CONFIG, DIAGNOSIS_CLASSES, RISK_LEVELS
 
 
 class SkinLesionCNN(nn.Module):
-    """ResNet18 fine-tuned para clasificación de lesiones cutáneas."""
+    """EfficientNet-B1 fine-tuned para clasificación de lesiones cutáneas."""
 
     def __init__(self, num_classes=7):
         super().__init__()
-        # ResNet18 pre-entrenada
-        self.base_model = models.resnet18(weights=models.ResNet18_Weights.DEFAULT)
+        # EfficientNet-B1 pre-entrenada (mejor accuracy/coste que ResNet18)
+        self.base_model = models.efficientnet_b1(weights=models.EfficientNet_B1_Weights.DEFAULT)
 
-        # Congelar las primeras capas (transfer learning)
-        for param in list(self.base_model.parameters())[:-20]:
-            param.requires_grad = False
+        # Congelar solo las primeras capas (features[0..5])
+        # Descongelar features[6..8] + classifier para mejor fine-tuning
+        for i, block in enumerate(self.base_model.features):
+            if i < 6:
+                for param in block.parameters():
+                    param.requires_grad = False
 
-        # Reemplazar última capa fully connected
-        num_features = self.base_model.fc.in_features
-        self.base_model.fc = nn.Sequential(
-            nn.Dropout(0.3),
-            nn.Linear(num_features, 256),
+        # Reemplazar classifier (EfficientNet usa .classifier en vez de .fc)
+        num_features = self.base_model.classifier[1].in_features
+        self.base_model.classifier = nn.Sequential(
+            nn.Dropout(0.4),
+            nn.Linear(num_features, 512),
             nn.ReLU(),
-            nn.Dropout(0.2),
-            nn.Linear(256, num_classes),
+            nn.BatchNorm1d(512),
+            nn.Dropout(0.3),
+            nn.Linear(512, num_classes),
         )
 
     def forward(self, x):
@@ -44,13 +48,17 @@ class SkinLesionCNN(nn.Module):
 # Transformaciones para datos de entrada
 data_transforms = {
     "train": transforms.Compose([
-        transforms.Resize((CNN_CONFIG["image_size"], CNN_CONFIG["image_size"])),
+        transforms.RandomResizedCrop(CNN_CONFIG["image_size"], scale=(0.7, 1.0), ratio=(0.85, 1.15)),
         transforms.RandomHorizontalFlip(),
         transforms.RandomVerticalFlip(),
-        transforms.RandomRotation(20),
-        transforms.ColorJitter(brightness=0.2, contrast=0.2, saturation=0.2),
+        transforms.RandomRotation(30),
+        transforms.RandomAffine(degrees=0, translate=(0.1, 0.1), shear=10),
+        transforms.RandomPerspective(distortion_scale=0.2, p=0.3),
+        transforms.ColorJitter(brightness=0.3, contrast=0.3, saturation=0.3, hue=0.05),
+        transforms.GaussianBlur(kernel_size=3, sigma=(0.1, 1.5)),
         transforms.ToTensor(),
         transforms.Normalize([0.485, 0.456, 0.406], [0.229, 0.224, 0.225]),
+        transforms.RandomErasing(p=0.2, scale=(0.02, 0.15)),
     ]),
     "val": transforms.Compose([
         transforms.Resize((CNN_CONFIG["image_size"], CNN_CONFIG["image_size"])),

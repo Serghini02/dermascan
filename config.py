@@ -21,7 +21,7 @@ CNN_CONFIG = {
     "image_size": 224,
     "batch_size": 32,
     "learning_rate": 1e-4,
-    "epochs": 15,
+    "epochs": 35,
     "num_classes": 7,
     "model_path": os.path.join(MODELS_DIR, "skin_cnn.pth"),
 }

@@ -161,14 +161,26 @@ def train_cnn(dataset_dir, epochs=None, callback=None):
     print(f"  Device: {device}")
     print(f"{'='*60}\n")
 
-    # Modelo, loss, optimizer
+    # Modelo, loss con pesos de clase, optimizer con weight_decay
     model = SkinLesionCNN(CNN_CONFIG["num_classes"]).to(device)
-    criterion = nn.CrossEntropyLoss()
-    optimizer = optim.Adam(
+
+    # Calcular pesos de clase inversamente proporcionales a la frecuencia
+    all_class_counts = Counter(labels)
+    total_samples = sum(all_class_counts.values())
+    num_classes = CNN_CONFIG["num_classes"]
+    class_weights = torch.tensor(
+        [total_samples / (num_classes * all_class_counts.get(i, 1)) for i in range(num_classes)],
+        dtype=torch.float
+    ).to(device)
+    print(f"[Train CNN] Pesos de clase: {class_weights.cpu().tolist()}")
+
+    criterion = nn.CrossEntropyLoss(weight=class_weights, label_smoothing=0.1)
+    optimizer = optim.AdamW(
         filter(lambda p: p.requires_grad, model.parameters()),
         lr=CNN_CONFIG["learning_rate"],
+        weight_decay=1e-3,
     )
-    scheduler = optim.lr_scheduler.StepLR(optimizer, step_size=5, gamma=0.5)
+    scheduler = optim.lr_scheduler.CosineAnnealingLR(optimizer, T_max=epochs, eta_min=1e-6)
 
     # Entrenamiento
     best_val_acc = 0.0

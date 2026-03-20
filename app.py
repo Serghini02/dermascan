@@ -76,7 +76,11 @@ def init_ham10000():
         print(f"[App] HAM10000 no disponible: {e}")
     return None
 
-ham10000_path = init_ham10000()
+if os.environ.get("SKIP_DATASET_DOWNLOAD", "false").lower() == "true":
+    print("[App] Omitiendo descarga de dataset HAM10000 (modo inferencia).")
+    ham10000_path = None
+else:
+    ham10000_path = init_ham10000()
 
 # =============================================================================
 # RUTAS — PÁGINAS
@@ -118,6 +122,40 @@ def scan_image():
 
         # 2. Análisis ABCDE
         abcde = analyze_mole(img_bgr)
+
+        # Filtro de Seguridad heurístico: si OpenCV no encuentra contornos de lunar
+        if abcde.get("risk") == "no_detectado":
+            cnn_result = {
+                "diagnosis_code": "no_detectado",
+                "diagnosis_name": "No se detecta lunar o lesión",
+                "confidence": 0.0,
+                "risk_level": "benigno",
+                "risk_label": "Nulo / No piel",
+                "risk_color": "#94a3b8",
+                "probabilities": {
+                    "no_detectado": {
+                        "name": "La imagen no parece ser un lunar",
+                        "probability": 1.0,
+                        "risk": "benigno"
+                    }
+                },
+                "prob_vector": [0.0] * 7,
+                "no_mole_found": True
+            }
+        
+        # Alerta de Riesgo Secundario
+        elif cnn_result.get("risk_level") == "benigno" and cnn_result.get("probabilities"):
+            # Buscar si alguna categoría maligna supera el 15% pero no es la máxima
+            has_sub_risk = False
+            for code, info in cnn_result["probabilities"].items():
+                if info["risk"] == "maligno" and info["probability"] >= 0.15:
+                    has_sub_risk = True
+                    break
+            
+            if has_sub_risk:
+                cnn_result["risk_level"] = "pre-maligno"
+                cnn_result["risk_label"] = "Medio (Riesgo secundario elevado)"
+                cnn_result["risk_color"] = "#f97316"
 
         # Actualizar sesión
         current_session["active"] = True

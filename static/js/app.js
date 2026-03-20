@@ -36,20 +36,99 @@ async function initCamera() {
     }
 }
 
+function resetScan() {
+    const video = document.getElementById('cameraVideo');
+    const img = document.getElementById('capturedImage');
+    const container = document.getElementById('scanResults');
+    
+    video.style.display = 'block';
+    img.style.display = 'none';
+    img.src = '';
+    document.getElementById('cameraOverlay').style.display = 'flex';
+    document.getElementById('fileInput').value = '';
+
+    const btnReset = document.getElementById('btnReset');
+    if (btnReset) btnReset.style.display = 'none';
+    document.getElementById('btnCapture').style.display = 'inline-flex';
+
+    container.innerHTML = `
+        <div class="empty-state">
+            <span class="empty-icon">🔬</span>
+            <p>Toma una foto de un lunar o usa el modo demo</p>
+        </div>`;
+
+    // Limpiar estado NLP anterior
+    document.getElementById('questionText').textContent = "Escanea un lunar primero para iniciar la consulta";
+    document.getElementById('btnSpeak').disabled = true;
+    document.getElementById('btnMic').disabled = true;
+    const nlpRes = document.getElementById('nlpResults');
+    if (nlpRes) nlpRes.innerHTML = '<div class="empty-state"><span class="empty-icon">🎤</span><p>Responde a las preguntas por voz o texto</p></div>';
+    const symList = document.getElementById('symptomSummary');
+    if (symList) symList.style.display = 'none';
+    const diagRes = document.getElementById('diagnosisResult');
+    if (diagRes) diagRes.style.display = 'none';
+}
+
+async function applyZoom(val) {
+    document.getElementById('zoomVal').textContent = `${parseFloat(val).toFixed(1)}x`;
+    if (!cameraStream) return;
+    try {
+        const track = cameraStream.getVideoTracks()[0];
+        const cap = track.getCapabilities();
+        if (cap.zoom) {
+            await track.applyConstraints({ advanced: [{ zoom: parseFloat(val) }] });
+            return;
+        }
+    } catch (e) { }
+
+    // Fallback Zoom Digital por software (CSS)
+    const video = document.getElementById('cameraVideo');
+    if (video) video.style.transform = `scale(${val})`;
+}
+
 function capturePhoto() {
     const video = document.getElementById('cameraVideo');
     const canvas = document.getElementById('cameraCanvas');
     const img = document.getElementById('capturedImage');
+    const zoomVal = parseFloat(document.getElementById('zoomSlider')?.value || 1.0);
 
-    canvas.width = video.videoWidth || 640;
-    canvas.height = video.videoHeight || 640;
-    canvas.getContext('2d').drawImage(video, 0, 0);
+    const fw = video.videoWidth || 640;
+    const fh = video.videoHeight || 640;
+
+    canvas.width = 640;
+    canvas.height = 640;
+    const ctx = canvas.getContext('2d');
+
+    // Intentar ver si el zoom es hardware o software para calcular el recorte
+    let isNativeZoom = false;
+    if (cameraStream) {
+        try {
+            const track = cameraStream.getVideoTracks()[0];
+            const cap = track.getCapabilities();
+            if (cap.zoom) isNativeZoom = true;
+        } catch (e) { }
+    }
+
+    if (!isNativeZoom && zoomVal > 1.0) {
+        // Zoom por software: Recortar la región central del video
+        const size = Math.min(fw, fh) / zoomVal;
+        const sx = (fw - size) / 2;
+        const sy = (fh - size) / 2;
+        ctx.drawImage(video, sx, sy, size, size, 0, 0, 640, 640);
+    } else {
+        // normal
+        ctx.drawImage(video, 0, 0, fw, fh, 0, 0, 640, 640);
+    }
 
     const dataUrl = canvas.toDataURL('image/jpeg', 0.85);
     img.src = dataUrl;
     img.style.display = 'block';
     video.style.display = 'none';
     document.getElementById('cameraOverlay').style.display = 'none';
+
+    const btnReset = document.getElementById('btnReset');
+    if (btnReset) btnReset.style.display = 'inline-flex';
+    document.getElementById('btnCapture').style.display = 'none';
 
     sendScan(dataUrl);
 }
@@ -64,6 +143,11 @@ function handleFileUpload(e) {
         img.style.display = 'block';
         document.getElementById('cameraVideo').style.display = 'none';
         document.getElementById('cameraOverlay').style.display = 'none';
+
+        const btnReset = document.getElementById('btnReset');
+        if (btnReset) btnReset.style.display = 'inline-flex';
+        document.getElementById('btnCapture').style.display = 'none';
+
         sendScan(ev.target.result);
     };
     reader.readAsDataURL(file);
@@ -71,7 +155,9 @@ function handleFileUpload(e) {
 
 async function sendScan(imageData) {
     const container = document.getElementById('scanResults');
-    container.innerHTML = '<div class="empty-state"><span class="spinner"></span><p>Analizando...</p></div>';
+    container.innerHTML = '<div class="empty-state"><span class="spinner"></span><p>Analizando imagen...</p></div>';
+    
+    const startTime = Date.now();
 
     try {
         const res = await fetch('/api/scan', {
@@ -81,6 +167,14 @@ async function sendScan(imageData) {
         });
         const data = await res.json();
         if (data.error) { container.innerHTML = `<p>${data.error}</p>`; return; }
+
+        // Retardo psicológico para aumentar confianza del usuario
+        const elapsed = Date.now() - startTime;
+        const minDuration = 1500; // 1.5 segundos
+        if (elapsed < minDuration) {
+            await new Promise(resolve => setTimeout(resolve, minDuration - elapsed));
+        }
+
         displayScanResults(data);
     } catch (e) {
         container.innerHTML = `<p>Error: ${e.message}</p>`;
