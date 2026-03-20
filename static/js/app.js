@@ -22,6 +22,8 @@ function switchTab(name) {
 // CAMERA / SCANNER
 // =============================================================================
 let cameraStream = null;
+let edgeDetectionActive = false;
+let edgeAnimId = null;
 
 async function initCamera() {
     try {
@@ -31,8 +33,168 @@ async function initCamera() {
         });
         video.srcObject = cameraStream;
         document.getElementById('cameraOverlay').style.display = 'flex';
+
+        // Iniciar detección de bordes cuando el video esté listo
+        video.addEventListener('playing', () => {
+            startEdgeDetection();
+        }, { once: true });
     } catch (e) {
         console.log('Cámara no disponible:', e.message);
+    }
+}
+
+// =============================================================================
+// EDGE DETECTION EN TIEMPO REAL
+// =============================================================================
+
+function startEdgeDetection() {
+    edgeDetectionActive = true;
+    processEdgeFrame();
+}
+
+function stopEdgeDetection() {
+    edgeDetectionActive = false;
+    if (edgeAnimId) {
+        cancelAnimationFrame(edgeAnimId);
+        edgeAnimId = null;
+    }
+    // Limpiar canvas
+    const ec = document.getElementById('edgeCanvas');
+    if (ec) {
+        const ctx = ec.getContext('2d');
+        ctx.clearRect(0, 0, ec.width, ec.height);
+    }
+}
+
+function processEdgeFrame() {
+    if (!edgeDetectionActive) return;
+
+    const video = document.getElementById('cameraVideo');
+    const edgeCanvas = document.getElementById('edgeCanvas');
+    if (!video || !edgeCanvas || video.paused || video.ended || video.videoWidth === 0) {
+        edgeAnimId = requestAnimationFrame(processEdgeFrame);
+        return;
+    }
+
+    const w = video.videoWidth;
+    const h = video.videoHeight;
+    // Usar resolución menor para rendimiento (~160px)
+    const scale = Math.min(160 / w, 160 / h);
+    const sw = Math.floor(w * scale);
+    const sh = Math.floor(h * scale);
+
+    // Ajustar edgeCanvas al tamaño del preview visible
+    const previewRect = edgeCanvas.parentElement.getBoundingClientRect();
+    edgeCanvas.width = previewRect.width;
+    edgeCanvas.height = previewRect.height;
+
+    // Crear canvas temporal para procesar
+    const tmpCanvas = document.createElement('canvas');
+    tmpCanvas.width = sw;
+    tmpCanvas.height = sh;
+    const tmpCtx = tmpCanvas.getContext('2d');
+    tmpCtx.drawImage(video, 0, 0, sw, sh);
+
+    const imgData = tmpCtx.getImageData(0, 0, sw, sh);
+    const gray = toGrayscale(imgData.data, sw, sh);
+    const blurred = gaussianBlur3x3(gray, sw, sh);
+    const edges = sobelEdges(blurred, sw, sh);
+
+    // Dibujar bordes en el edgeCanvas a escala completa
+    drawEdges(edgeCanvas, edges, sw, sh);
+
+    // Throttle a ~12fps para no saturar CPU
+    setTimeout(() => {
+        edgeAnimId = requestAnimationFrame(processEdgeFrame);
+    }, 80);
+}
+
+function toGrayscale(data, w, h) {
+    const gray = new Float32Array(w * h);
+    for (let i = 0; i < w * h; i++) {
+        const idx = i * 4;
+        gray[i] = 0.299 * data[idx] + 0.587 * data[idx + 1] + 0.114 * data[idx + 2];
+    }
+    return gray;
+}
+
+function gaussianBlur3x3(gray, w, h) {
+    const out = new Float32Array(w * h);
+    // Kernel 3x3 Gaussiano: [1,2,1; 2,4,2; 1,2,1] / 16
+    for (let y = 1; y < h - 1; y++) {
+        for (let x = 1; x < w - 1; x++) {
+            const i = y * w + x;
+            out[i] = (
+                gray[(y-1)*w + (x-1)] + 2*gray[(y-1)*w + x] + gray[(y-1)*w + (x+1)] +
+                2*gray[y*w + (x-1)]   + 4*gray[y*w + x]     + 2*gray[y*w + (x+1)] +
+                gray[(y+1)*w + (x-1)] + 2*gray[(y+1)*w + x] + gray[(y+1)*w + (x+1)]
+            ) / 16;
+        }
+    }
+    return out;
+}
+
+function sobelEdges(gray, w, h) {
+    const mag = new Float32Array(w * h);
+    for (let y = 1; y < h - 1; y++) {
+        for (let x = 1; x < w - 1; x++) {
+            // Sobel X
+            const gx = (
+                -gray[(y-1)*w + (x-1)] + gray[(y-1)*w + (x+1)] +
+                -2*gray[y*w + (x-1)]   + 2*gray[y*w + (x+1)] +
+                -gray[(y+1)*w + (x-1)] + gray[(y+1)*w + (x+1)]
+            );
+            // Sobel Y
+            const gy = (
+                -gray[(y-1)*w + (x-1)] - 2*gray[(y-1)*w + x] - gray[(y-1)*w + (x+1)] +
+                 gray[(y+1)*w + (x-1)] + 2*gray[(y+1)*w + x] + gray[(y+1)*w + (x+1)]
+            );
+            mag[y * w + x] = Math.sqrt(gx * gx + gy * gy);
+        }
+    }
+    return mag;
+}
+
+function drawEdges(canvas, edges, sw, sh) {
+    const ctx = canvas.getContext('2d');
+    const cw = canvas.width;
+    const ch = canvas.height;
+    ctx.clearRect(0, 0, cw, ch);
+
+    // Calcular umbral adaptativo (media + 1.5*desviación)
+    let sum = 0, count = 0;
+    // Solo calcular en la zona central (donde está el círculo guía)
+    const cx = sw / 2, cy = sh / 2, radius = sw * 0.275;
+    for (let y = 0; y < sh; y++) {
+        for (let x = 0; x < sw; x++) {
+            const dx = x - cx, dy = y - cy;
+            if (dx * dx + dy * dy < radius * radius) {
+                sum += edges[y * sw + x];
+                count++;
+            }
+        }
+    }
+    const mean = count > 0 ? sum / count : 30;
+    const threshold = Math.max(mean * 1.8, 25);
+
+    // Dibujar contornos escalados
+    const scaleX = cw / sw;
+    const scaleY = ch / sh;
+
+    ctx.fillStyle = 'rgba(13, 148, 136, 0.7)';
+
+    for (let y = 1; y < sh - 1; y++) {
+        for (let x = 1; x < sw - 1; x++) {
+            if (edges[y * sw + x] > threshold) {
+                // Solo dentro de la zona del círculo guía (con margen)
+                const dx = x - cx, dy = y - cy;
+                if (dx * dx + dy * dy < (radius * 1.3) * (radius * 1.3)) {
+                    const px = Math.floor(x * scaleX);
+                    const py = Math.floor(y * scaleY);
+                    ctx.fillRect(px, py, Math.ceil(scaleX) + 1, Math.ceil(scaleY) + 1);
+                }
+            }
+        }
     }
 }
 
@@ -46,6 +208,9 @@ function resetScan() {
     img.src = '';
     document.getElementById('cameraOverlay').style.display = 'flex';
     document.getElementById('fileInput').value = '';
+
+    // Reanudar detección de bordes en tiempo real
+    startEdgeDetection();
 
     const btnReset = document.getElementById('btnReset');
     if (btnReset) btnReset.style.display = 'none';
@@ -120,6 +285,9 @@ function capturePhoto() {
         ctx.drawImage(video, 0, 0, fw, fh, 0, 0, 640, 640);
     }
 
+    // Parar detección de bordes
+    stopEdgeDetection();
+
     const dataUrl = canvas.toDataURL('image/jpeg', 0.85);
     img.src = dataUrl;
     img.style.display = 'block';
@@ -138,6 +306,7 @@ function handleFileUpload(e) {
     if (!file) return;
     const reader = new FileReader();
     reader.onload = (ev) => {
+        stopEdgeDetection();
         const img = document.getElementById('capturedImage');
         img.src = ev.target.result;
         img.style.display = 'block';
