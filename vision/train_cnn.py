@@ -164,15 +164,17 @@ def train_cnn(dataset_dir, epochs=None, callback=None):
     # Modelo, loss con pesos de clase, optimizer con weight_decay
     model = SkinLesionCNN(CNN_CONFIG["num_classes"]).to(device)
 
-    # Calcular pesos de clase inversamente proporcionales a la frecuencia
+    # Calcular pesos de clase balanceados pero suavizados (raíz cuadrada)
     all_class_counts = Counter(labels)
     total_samples = sum(all_class_counts.values())
     num_classes = CNN_CONFIG["num_classes"]
+    
+    # Suavizado: elevar a 0.5 (raíz cuadrada) reduce la agresividad de los pesos extremos
     class_weights = torch.tensor(
-        [total_samples / (num_classes * all_class_counts.get(i, 1)) for i in range(num_classes)],
+        [(total_samples / (num_classes * all_class_counts.get(i, 1))) ** 0.5 for i in range(num_classes)],
         dtype=torch.float
     ).to(device)
-    print(f"[Train CNN] Pesos de clase: {class_weights.cpu().tolist()}")
+    print(f"[Train CNN] Pesos de clase suavizados (sqrt): {class_weights.cpu().tolist()}")
 
     criterion = nn.CrossEntropyLoss(weight=class_weights, label_smoothing=0.1)
     optimizer = optim.AdamW(

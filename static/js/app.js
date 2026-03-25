@@ -24,6 +24,8 @@ function switchTab(name) {
 let cameraStream = null;
 let edgeDetectionActive = false;
 let edgeAnimId = null;
+let edgeBuffer = []; // Buffer para suavizado temporal
+const BUFFER_SIZE = 3;
 
 async function initCamera() {
     try {
@@ -54,6 +56,7 @@ function startEdgeDetection() {
 
 function stopEdgeDetection() {
     edgeDetectionActive = false;
+    edgeBuffer = []; // Limpiar buffer
     if (edgeAnimId) {
         cancelAnimationFrame(edgeAnimId);
         edgeAnimId = null;
@@ -98,15 +101,26 @@ function processEdgeFrame() {
     const imgData = tmpCtx.getImageData(0, 0, sw, sh);
     const gray = toGrayscale(imgData.data, sw, sh);
     const blurred = gaussianBlur3x3(gray, sw, sh);
-    const edges = sobelEdges(blurred, sw, sh);
+    const currentEdges = sobelEdges(blurred, sw, sh);
 
-    // Dibujar bordes en el edgeCanvas a escala completa
-    drawEdges(edgeCanvas, edges, sw, sh);
+    // Suavizado temporal
+    edgeBuffer.push(currentEdges);
+    if (edgeBuffer.length > BUFFER_SIZE) edgeBuffer.shift();
 
-    // Throttle a ~12fps para no saturar CPU
+    const smoothedEdges = new Float32Array(sw * sh);
+    for (let i = 0; i < sw * sh; i++) {
+        let sum = 0;
+        for (let j = 0; j < edgeBuffer.length; j++) sum += edgeBuffer[j][i];
+        smoothedEdges[i] = sum / edgeBuffer.length;
+    }
+
+    // Dibujar bordes suavizados
+    drawEdges(edgeCanvas, smoothedEdges, sw, sh);
+
+    // Throttle a ~15fps para no saturar CPU
     setTimeout(() => {
         edgeAnimId = requestAnimationFrame(processEdgeFrame);
-    }, 80);
+    }, 66);
 }
 
 function toGrayscale(data, w, h) {

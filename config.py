@@ -18,10 +18,10 @@ HAM10000_DIR = None  # Se setea en runtime al detectar la ubicación
 # CNN — Clasificación de lesiones
 # =============================================================================
 CNN_CONFIG = {
-    "image_size": 224,
+    "image_size": 240,
     "batch_size": 32,
-    "learning_rate": 1e-4,
-    "epochs": 35,
+    "learning_rate": 3e-4,
+    "epochs": 25,
     "num_classes": 7,
     "model_path": os.path.join(MODELS_DIR, "skin_cnn.pth"),
 }
