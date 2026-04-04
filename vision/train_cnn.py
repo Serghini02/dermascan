@@ -195,7 +195,9 @@ def train_cnn(dataset_dir, epochs=None, callback=None):
         correct = 0
         total = 0
 
-        for batch_idx, (images, targets) in enumerate(train_loader):
+        from tqdm import tqdm
+        pbar = tqdm(enumerate(train_loader), total=len(train_loader), desc=f"Epoch {epoch+1:3d}/{epochs}")
+        for batch_idx, (images, targets) in pbar:
             images, targets = images.to(device), targets.to(device)
             optimizer.zero_grad()
             outputs = model(images)
@@ -207,6 +209,9 @@ def train_cnn(dataset_dir, epochs=None, callback=None):
             _, predicted = outputs.max(1)
             total += targets.size(0)
             correct += predicted.eq(targets).sum().item()
+            
+            if batch_idx % 5 == 0:
+                pbar.set_postfix({"acc": f"{100.0 * correct / total:.1f}%"})
 
         train_loss = running_loss / len(train_loader)
         train_acc = 100.0 * correct / total
