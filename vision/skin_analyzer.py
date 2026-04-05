@@ -1,6 +1,9 @@
 """
 Análisis ABCDE de lunares usando OpenCV.
 A=Asimetría, B=Bordes, C=Color, D=Diámetro, E=Evolución
+
+Nota: La imagen de entrada se asume capturada con el lunar centrado
+en el overlay circular del escáner (640x640px).
 """
 
 import cv2
@@ -12,13 +15,15 @@ def analyze_mole(image):
     Análisis ABCDE completo de un lunar.
 
     Args:
-        image: numpy array (BGR) de la imagen del lunar
+        image: numpy array (BGR) de la imagen del lunar (640x640 esperado)
 
     Returns:
         dict con puntuaciones ABCDE y nivel de riesgo visual
     """
-    # Preprocesar - segmentar el lunar
-    mask = _segment_mole(image)
+    h, w = image.shape[:2]
+
+    # Preprocesar - segmentar el lunar centrado
+    mask = _segment_mole_centered(image)
     if mask is None or cv2.countNonZero(mask) < 100:
         return _default_scores("No se detectó lunar en la imagen")
 
@@ -33,8 +38,8 @@ def analyze_mole(image):
     a_score, a_detail = _asymmetry(contour, mask)
     b_score, b_detail = _border_irregularity(contour)
     c_score, c_detail = _color_variation(image, mask)
-    d_score, d_detail = _diameter(contour)
-    e_score, e_detail = _evolution_indicators(image, mask, contour)
+    d_score, d_detail = _diameter(contour, w, h)
+    e_score, e_detail = _evolution_indicators(image, mask)
 
     # Puntuación total (0-10)
     total = (a_score + b_score + c_score + d_score + e_score) / 5 * 10
@@ -50,184 +55,285 @@ def analyze_mole(image):
 
     return {
         "asymmetry": {"score": round(a_score, 2), "detail": a_detail},
-        "border": {"score": round(b_score, 2), "detail": b_detail},
-        "color": {"score": round(c_score, 2), "detail": c_detail},
-        "diameter": {"score": round(d_score, 2), "detail": d_detail},
+        "border":    {"score": round(b_score, 2), "detail": b_detail},
+        "color":     {"score": round(c_score, 2), "detail": c_detail},
+        "diameter":  {"score": round(d_score, 2), "detail": d_detail},
         "evolution": {"score": round(e_score, 2), "detail": e_detail},
         "total_score": total,
         "risk": risk,
     }
 
 
-def _segment_mole(image):
-    """Segmenta el lunar del fondo de piel."""
-    hsv = cv2.cvtColor(image, cv2.COLOR_BGR2HSV)
-    gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
+# =============================================================================
+# SEGMENTACIÓN — centrada (el lunar siempre está en el centro gracias al overlay)
+# =============================================================================
 
-    # Usar Filtro Bilateral para suavizar el ruido pero preservando bordes
-    blurred = cv2.bilateralFilter(gray, 9, 75, 75)
-    
-    # Combinar Otsu con AdaptiveThreshold para bordes más precisos
-    _, otsu = cv2.threshold(blurred, 0, 255, cv2.THRESH_BINARY_INV + cv2.THRESH_OTSU)
-    adaptive = cv2.adaptiveThreshold(blurred, 255, cv2.ADAPTIVE_THRESH_GAUSSIAN_C, 
-                                      cv2.THRESH_BINARY_INV, 15, 4)
-    
-    base_mask = cv2.bitwise_or(otsu, adaptive)
+def _segment_mole_centered(image):
+    """
+    Segmenta el lunar asumiendo que ESTÁ en el centro de la imagen
+    (garantizado por el overlay circular del escáner).
+    Usa una región central de interés + GrabCut simplificado.
+    """
+    h, w = image.shape[:2]
+    cx, cy = w // 2, h // 2
 
-    # Filtrar por saturación y valor (lunares tienden a ser oscuros y saturados)
-    s = hsv[:, :, 1]
-    v = hsv[:, :, 2]
-    dark_mask = (v < 185).astype(np.uint8) * 255
-    sat_mask = (s > 15).astype(np.uint8) * 255
+    # ROI circular central (aprox 60% del frame donde está el lunar)
+    roi_r = int(min(w, h) * 0.30)
 
-    combined = cv2.bitwise_and(base_mask, dark_mask)
-    combined = cv2.bitwise_and(combined, sat_mask)
+    # ---- Paso 1: máscara de ROI circular para acotar la búsqueda ----
+    roi_mask = np.zeros((h, w), dtype=np.uint8)
+    cv2.circle(roi_mask, (cx, cy), roi_r, 255, -1)
 
-    # Limpiar morfología conservando estructura
-    kernel_close = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (7, 7))
-    kernel_open = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (3, 3))
-    combined = cv2.morphologyEx(combined, cv2.MORPH_CLOSE, kernel_close, iterations=2)
-    combined = cv2.morphologyEx(combined, cv2.MORPH_OPEN, kernel_open, iterations=1)
+    # ---- Paso 2: Convertir a Lab y aplicar k-means (2 clusters) ----
+    lab = cv2.cvtColor(image, cv2.COLOR_BGR2Lab)
+    pixels_roi = lab[roi_mask > 0].astype(np.float32)
 
-    return combined
+    if len(pixels_roi) < 50:
+        return None
 
+    # K-means para separar fondo-piel del lunar
+    criteria = (cv2.TERM_CRITERIA_EPS + cv2.TERM_CRITERIA_MAX_ITER, 10, 1.0)
+    _, labels, centers = cv2.kmeans(pixels_roi, 2, None, criteria, 3, cv2.KMEANS_PP_CENTERS)
+
+    # El cluster más oscuro (menor L en Lab) es el lunar
+    darker_cluster = int(np.argmin(centers[:, 0]))  # canal L
+    mole_px_mask = (labels.flatten() == darker_cluster)
+
+    # Reconstruir máscara
+    mask = np.zeros((h, w), dtype=np.uint8)
+    roi_indices = np.where(roi_mask.flatten() > 0)[0]
+    for idx, is_mole in zip(roi_indices, mole_px_mask):
+        if is_mole:
+            row, col = divmod(idx, w)
+            mask[row, col] = 255
+
+    # ---- Paso 3: Limpiar morfología ----
+    kernel = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (7, 7))
+    mask = cv2.morphologyEx(mask, cv2.MORPH_CLOSE, kernel, iterations=2)
+    mask = cv2.morphologyEx(mask, cv2.MORPH_OPEN,
+                            cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (3, 3)), iterations=1)
+
+    # Mantener solo la componente conexa más cercana al centro
+    num_labels, label_map, stats, centroids = cv2.connectedComponentsWithStats(mask)
+    if num_labels < 2:
+        return None
+
+    best = -1
+    best_dist = float('inf')
+    for i in range(1, num_labels):
+        ccx, ccy = centroids[i]
+        dist = (ccx - cx) ** 2 + (ccy - cy) ** 2
+        if dist < best_dist and stats[i, cv2.CC_STAT_AREA] > 80:
+            best_dist = dist
+            best = i
+
+    if best == -1:
+        return None
+
+    final_mask = np.zeros_like(mask)
+    final_mask[label_map == best] = 255
+    return final_mask
+
+
+# =============================================================================
+# A — ASIMETRÍA
+# =============================================================================
 
 def _asymmetry(contour, mask):
-    """A: Mide la asimetría del lunar comparando mitades."""
-    moments = cv2.moments(contour)
-    if moments["m00"] == 0:
+    """A: Mide la asimetría del lunar comparando mitades horizontal y vertical."""
+    M = cv2.moments(contour)
+    if M["m00"] == 0:
         return 0.0, "No se pudo calcular"
 
-    cx = int(moments["m10"] / moments["m00"])
-    cy = int(moments["m01"] / moments["m00"])
-    h, w = mask.shape
+    cx = int(M["m10"] / M["m00"])
+    cy = int(M["m01"] / M["m00"])
 
-    # Comparar mitades horizontales
+    # Mitades horizontales (izquierda vs derecha)
     left = mask[:, :cx]
     right = mask[:, cx:]
     min_w = min(left.shape[1], right.shape[1])
     if min_w > 0:
-        left_area = np.sum(left[:, -min_w:] > 0)
-        right_area = np.sum(right[:, :min_w] > 0)
-        h_asym = abs(left_area - right_area) / max(left_area + right_area, 1)
+        la = np.sum(left[:, -min_w:] > 0)
+        ra = np.sum(right[:, :min_w] > 0)
+        h_asym = abs(la - ra) / max(la + ra, 1)
     else:
         h_asym = 0
 
-    # Comparar mitades verticales
+    # Mitades verticales (arriba vs abajo)
     top = mask[:cy, :]
-    bottom = mask[cy:, :]
-    min_h = min(top.shape[0], bottom.shape[0])
+    bot = mask[cy:, :]
+    min_h = min(top.shape[0], bot.shape[0])
     if min_h > 0:
-        top_area = np.sum(top[-min_h:, :] > 0)
-        bottom_area = np.sum(bottom[:min_h, :] > 0)
-        v_asym = abs(top_area - bottom_area) / max(top_area + bottom_area, 1)
+        ta = np.sum(top[-min_h:, :] > 0)
+        ba = np.sum(bot[:min_h, :] > 0)
+        v_asym = abs(ta - ba) / max(ta + ba, 1)
     else:
         v_asym = 0
 
     score = (h_asym + v_asym) / 2
-    detail = f"Horizontal: {h_asym:.0%}, Vertical: {v_asym:.0%}"
-    return score, detail
+    detail = f"H: {h_asym:.0%} | V: {v_asym:.0%}"
+    return float(score), detail
 
+
+# =============================================================================
+# B — BORDES
+# =============================================================================
 
 def _border_irregularity(contour):
-    """B: Mide la irregularidad del borde."""
+    """B: Mide la irregularidad del borde mediante circularidad y convexidad."""
     area = cv2.contourArea(contour)
     perimeter = cv2.arcLength(contour, closed=True)
 
-    if perimeter == 0:
+    if perimeter == 0 or area == 0:
         return 0.0, "No se pudo calcular"
 
-    # Circularidad (1 = círculo perfecto, 0 = irregular)
+    # Circularidad: 1.0 = círculo perfecto
     circularity = (4 * np.pi * area) / (perimeter ** 2)
+    circularity = min(circularity, 1.0)
 
-    # Convexidad
+    # Convexidad: cuánto del contorno es convexo
     hull = cv2.convexHull(contour)
     hull_area = cv2.contourArea(hull)
-    solidity = area / hull_area if hull_area > 0 else 1
+    solidity = area / hull_area if hull_area > 0 else 1.0
+    solidity = min(solidity, 1.0)
 
-    # Score: mayor irregularidad = mayor score
-    score = 1.0 - (circularity * 0.5 + solidity * 0.5)
-    score = max(0, min(score, 1))
+    # Índice de irregularidad: < 0.8 circularity o < 0.85 solidity → sospechoso
+    irreg_circ = max(0.0, (0.85 - circularity) / 0.85)
+    irreg_sol  = max(0.0, (0.90 - solidity) / 0.90)
+    score = (irreg_circ * 0.5 + irreg_sol * 0.5)
+    score = min(score, 1.0)
 
-    detail = f"Circularidad: {circularity:.2f}, Solidez: {solidity:.2f}"
-    return score, detail
+    detail = f"Circularidad: {circularity:.2f} | Convexidad: {solidity:.2f}"
+    return float(score), detail
 
+
+# =============================================================================
+# C — COLOR
+# =============================================================================
 
 def _color_variation(image, mask):
-    """C: Mide la variación de color dentro del lunar."""
-    hsv = cv2.cvtColor(image, cv2.COLOR_BGR2HSV)
-    pixels = hsv[mask > 0]
+    """
+    C: Variación de color dentro del lunar.
+    Usa espacio CIE Lab para comparación perceptualmente correcta.
+    """
+    lab = cv2.cvtColor(image, cv2.COLOR_BGR2Lab)
+    pixels = lab[mask > 0].astype(np.float32)
 
-    if len(pixels) < 10:
+    if len(pixels) < 20:
         return 0.0, "Insuficientes píxeles"
 
-    # Varianza en cada canal HSV
-    h_std = float(np.std(pixels[:, 0]))
-    s_std = float(np.std(pixels[:, 1]))
-    v_std = float(np.std(pixels[:, 2]))
+    # Desviación estándar en cada canal Lab (L=luminosidad, a=rojo-verde, b=amarillo-azul)
+    l_std = float(np.std(pixels[:, 0])) / 128.0   # normalizado 0-1
+    a_std = float(np.std(pixels[:, 1])) / 128.0
+    b_std = float(np.std(pixels[:, 2])) / 128.0
 
-    # Contar colores distintos (cuantizados)
-    h_bins = np.histogram(pixels[:, 0], bins=12, range=(0, 180))[0]
-    num_colors = np.sum(h_bins > len(pixels) * 0.05)
+    # ΔE medio: distancia perceptual al color medio
+    mean_color = pixels.mean(axis=0)
+    delta_e = float(np.mean(np.linalg.norm(pixels - mean_color, axis=1))) / 50.0
 
-    # Score: más variación de color = mayor riesgo
-    color_var = (h_std / 90 + s_std / 128 + v_std / 128) / 3
-    score = min(color_var * 2 + (num_colors - 1) * 0.1, 1.0)
-    score = max(0, score)
+    # Contar regiones de color distintas (k-means con k=3)
+    num_tones = 1
+    try:
+        criteria = (cv2.TERM_CRITERIA_EPS + cv2.TERM_CRITERIA_MAX_ITER, 5, 1.0)
+        _, labels_km, _ = cv2.kmeans(pixels, 3, None, criteria, 3, cv2.KMEANS_PP_CENTERS)
+        counts = np.bincount(labels_km.flatten(), minlength=3)
+        num_tones = int(np.sum(counts > len(pixels) * 0.08))  # clusters con >8% de píxeles
+    except Exception:
+        pass
 
-    detail = f"{num_colors} colores detectados, variación: {color_var:.2f}"
-    return score, detail
+    score = min((l_std + a_std + b_std) / 3 * 4 + delta_e + (num_tones - 1) * 0.15, 1.0)
+    score = max(0.0, score)
+
+    detail = f"{num_tones} tonos | ΔE: {delta_e*50:.1f} | Var L: {l_std*128:.1f}"
+    return float(score), detail
 
 
-def _diameter(contour):
-    """D: Estima el diámetro del lunar."""
-    _, radius = cv2.minEnclosingCircle(contour)
-    diameter_px = radius * 2
+# =============================================================================
+# D — DIÁMETRO
+# =============================================================================
 
-    # Estimación en mm (asumiendo distancia típica de foto de móvil)
-    # Esto es una aproximación, el DPI real depende de la cámara y distancia
-    estimated_mm = diameter_px * 0.05  # Factor de conversión aproximado
+def _diameter(contour, img_w, img_h):
+    """
+    D: Estima el diámetro del lunar calibrado al tamaño real de la imagen.
 
-    # Score: lunares > 6mm tienen más riesgo
-    if estimated_mm > 6:
-        score = min(1.0, estimated_mm / 10)
+    La imagen capturada es 640x640px y el overlay del escáner abarca ~60%
+    del ancho visible. Asumimos que el usuario fotografía a ~15cm con un
+    móvil típico (≈ 60px/mm a esa distancia para sensor de 12MP, croppeado
+    a un cuadrado de 640px que representa ~25mm de ancho real).
+    → 1mm ≈ 25.6px  (640px / 25mm)
+    """
+    _, radius_px = cv2.minEnclosingCircle(contour)
+    diameter_px = radius_px * 2
+
+    # Proporción del lunar respecto al frame
+    img_area = img_w * img_h
+    mole_area_px = cv2.contourArea(contour)
+    pct_frame = (mole_area_px / img_area) * 100
+
+    # Conversión calibrada: 640px ≈ 25mm de ancho real a 15cm
+    px_per_mm = img_w / 25.0
+    diameter_mm = diameter_px / px_per_mm
+
+    # Score: lunares > 6mm son clínicamente significativos
+    if diameter_mm >= 6:
+        score = min(1.0, 0.5 + (diameter_mm - 6) / 10)
     else:
-        score = estimated_mm / 12
+        score = diameter_mm / 12.0
 
-    detail = f"Diámetro estimado: {estimated_mm:.1f}mm ({diameter_px:.0f}px)"
-    return score, detail
+    detail = f"~{diameter_mm:.1f}mm ({diameter_px:.0f}px · {pct_frame:.1f}% del frame)"
+    return float(score), detail
 
 
-def _evolution_indicators(image, mask, contour):
-    """E: Indicadores de evolución (análisis de textura como proxy)."""
+# =============================================================================
+# E — EVOLUCIÓN (indicadores de textura como proxy)
+# =============================================================================
+
+def _evolution_indicators(image, mask):
+    """
+    E: Proxy de evolución basado en heterogeneidad de textura.
+    Mayor textura interna irregular → posible cambio evolutivo.
+    """
     gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
-    roi = cv2.bitwise_and(gray, gray, mask=mask)
-    pixels = roi[mask > 0]
 
-    if len(pixels) < 10:
+    # Aplicar solo en zona del lunar
+    roi = cv2.bitwise_and(gray, gray, mask=mask)
+    pixels_vals = roi[mask > 0].astype(np.float32)
+
+    if len(pixels_vals) < 20:
         return 0.0, "Insuficientes datos"
 
-    # Varianza de textura (texturas irregulares → posible evolución)
-    texture_var = float(np.var(pixels)) / 255
+    # 1. Varianza de textura (Laplaciano dentro del lunar)
+    laplacian = cv2.Laplacian(roi, cv2.CV_64F)
+    lap_vals = np.abs(laplacian[mask > 0])
+    texture_score = float(np.mean(lap_vals)) / 30.0   # normalizado
 
-    # Bordes internos
-    edges = cv2.Canny(roi, 50, 150)
-    edge_pixels = cv2.bitwise_and(edges, edges, mask=mask)
-    edge_ratio = np.sum(edge_pixels > 0) / max(np.sum(mask > 0), 1)
+    # 2. Heterogeneidad de brillo (coef. variación)
+    mean_v = float(np.mean(pixels_vals))
+    std_v  = float(np.std(pixels_vals))
+    cv_brightness = (std_v / mean_v) if mean_v > 0 else 0
 
-    score = min((texture_var + edge_ratio * 2) / 2, 1.0)
+    # 3. Bordes internos (Canny dentro del lunar)
+    edges = cv2.Canny(roi, 30, 100)
+    edge_ratio = np.sum(edges[mask > 0] > 0) / max(np.sum(mask > 0), 1)
 
-    detail = f"Textura: {texture_var:.2f}, Bordes internos: {edge_ratio:.2%}"
-    return score, detail
+    score = min((texture_score * 0.4 + cv_brightness * 0.3 + edge_ratio * 2 * 0.3), 1.0)
+    score = max(0.0, score)
 
+    detail = f"Textura: {texture_score*30:.1f} | Var brillo: {cv_brightness:.2f} | Bordes: {edge_ratio:.1%}"
+    return float(score), detail
+
+
+# =============================================================================
+# FALLBACK
+# =============================================================================
 
 def _default_scores(reason):
     """Scores por defecto cuando no se detecta lunar."""
     return {
         "asymmetry": {"score": 0, "detail": reason},
-        "border": {"score": 0, "detail": reason},
-        "color": {"score": 0, "detail": reason},
-        "diameter": {"score": 0, "detail": reason},
+        "border":    {"score": 0, "detail": reason},
+        "color":     {"score": 0, "detail": reason},
+        "diameter":  {"score": 0, "detail": reason},
         "evolution": {"score": 0, "detail": reason},
         "total_score": 0,
         "risk": "no_detectado",

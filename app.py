@@ -246,6 +246,38 @@ def process_voice():
     state = _build_state()
     drl_pred = dqn_agent.predict(state)
 
+    questions_done = len(current_session["questions_asked"])
+    all_question_ids = [SYMPTOM_QUESTIONS[i]["id"] for i in range(6)]
+    asked_ids = set(current_session["questions_asked"])
+
+    # ── Regla 1: No diagnosticar/pedir foto antes de ≥3 preguntas ──
+    MIN_QUESTIONS = 3
+    if drl_pred["action"] in (6, 7) and questions_done < MIN_QUESTIONS:
+        # Elegir la siguiente pregunta no respondida
+        next_action = next(
+            (i for i in range(6) if SYMPTOM_QUESTIONS[i]["id"] not in asked_ids),
+            6  # si todas respondidas, diagnosticar
+        )
+        drl_pred["action"] = next_action
+        drl_pred["action_name"] = ACTION_NAMES.get(next_action, "")
+
+    # ── Regla 2: No repetir preguntas ya hechas ──
+    if drl_pred["action"] <= 5:
+        chosen_id = SYMPTOM_QUESTIONS[drl_pred["action"]]["id"]
+        if chosen_id in asked_ids:
+            # Elegir la siguiente sin responder
+            next_action = next(
+                (i for i in range(6) if SYMPTOM_QUESTIONS[i]["id"] not in asked_ids),
+                6  # si todas respondidas, diagnosticar
+            )
+            drl_pred["action"] = next_action
+            drl_pred["action_name"] = ACTION_NAMES.get(next_action, "")
+
+    # ── Regla 3: Si ya se hicieron todas las preguntas, diagnosticar ──
+    if drl_pred["action"] == 7 and questions_done >= 6:
+        drl_pred["action"] = 6
+        drl_pred["action_name"] = ACTION_NAMES[6]
+
     # ¿Es diagnóstico final?
     is_final = drl_pred["action"] == 6
     diagnosis = None
