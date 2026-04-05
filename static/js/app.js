@@ -248,7 +248,7 @@ function resetScan() {
     container.innerHTML = `
         <div class="empty-state">
             <span class="empty-icon">🔬</span>
-            <p>Toma una foto de un lunar o usa el modo demo</p>
+            <p>Toma una foto de un lunar para analizarlo</p>
         </div>`;
 
     // Limpiar estado NLP anterior
@@ -379,17 +379,6 @@ async function sendScan(imageData) {
     }
 }
 
-async function scanDemo() {
-    const container = document.getElementById('scanResults');
-    container.innerHTML = '<div class="empty-state"><span class="spinner"></span><p>Generando ejemplo...</p></div>';
-    try {
-        const res = await fetch('/api/scan/demo', { method: 'POST' });
-        const data = await res.json();
-        displayScanResults(data);
-    } catch (e) {
-        container.innerHTML = `<p>Error: ${e.message}</p>`;
-    }
-}
 
 function displayScanResults(data) {
     const container = document.getElementById('scanResults');
@@ -405,7 +394,6 @@ function displayScanResults(data) {
             </div>
             <div style="margin-top:6px;font-size:0.85rem;color:var(--text-secondary)">
                 Confianza: ${(cnn.confidence * 100).toFixed(1)}%
-                ${cnn.demo_mode ? ' (Demo)' : ''}
             </div>
         </div>`;
 

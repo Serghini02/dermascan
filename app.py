@@ -115,10 +115,9 @@ def scan_image():
         img_bgr = cv2.cvtColor(img_np, cv2.COLOR_RGB2BGR)
 
         # 1. Clasificación CNN
-        if classifier.loaded:
-            cnn_result = classifier.predict(img_pil)
-        else:
-            cnn_result = classifier.predict_demo()
+        if not classifier.loaded:
+            return jsonify({"error": "Modelo CNN no disponible. Asegúrate de que skin_cnn.pth existe en /models"}), 503
+        cnn_result = classifier.predict(img_pil)
 
         # 2. Análisis ABCDE
         abcde = analyze_mole(img_bgr)
@@ -181,37 +180,7 @@ def scan_image():
         return jsonify({"error": str(e)}), 500
 
 
-@app.route('/api/scan/demo', methods=['POST'])
-def scan_demo():
-    """Escaneo demo sin imagen real."""
-    cnn_result = classifier.predict_demo()
 
-    # ABCDE simulado
-    abcde = {
-        "asymmetry": {"score": round(np.random.uniform(0, 0.8), 2), "detail": "Simulado"},
-        "border": {"score": round(np.random.uniform(0, 0.7), 2), "detail": "Simulado"},
-        "color": {"score": round(np.random.uniform(0, 0.6), 2), "detail": "Simulado"},
-        "diameter": {"score": round(np.random.uniform(0, 0.5), 2), "detail": "Simulado"},
-        "evolution": {"score": round(np.random.uniform(0, 0.4), 2), "detail": "Simulado"},
-        "total_score": round(np.random.uniform(0, 7), 1),
-        "risk": np.random.choice(["bajo", "medio", "alto"], p=[0.5, 0.35, 0.15]),
-    }
-
-    current_session["active"] = True
-    current_session["cnn_result"] = cnn_result
-    current_session["abcde_scores"] = abcde
-    current_session["symptoms"] = {}
-    current_session["questions_asked"] = []
-
-    state = _build_state()
-    drl_pred = dqn_agent.predict(state)
-
-    return jsonify({
-        "cnn": cnn_result,
-        "abcde": abcde,
-        "next_action": drl_pred,
-        "next_question": _get_question_text(drl_pred["action"]),
-    })
 
 
 # =============================================================================
@@ -464,17 +433,11 @@ def _generate_recommendation(cnn, abcde, symptoms):
 # =============================================================================
 
 if __name__ == '__main__':
-    import argparse
-    parser = argparse.ArgumentParser()
-    parser.add_argument('--demo', action='store_true', help='Modo demo sin HAM10000')
-    args = parser.parse_args()
-
     print(f"\n{'='*60}")
     print(f"  🔬 DermaScan — Escáner Inteligente de Lunares")
     print(f"  URL: http://localhost:{FLASK_PORT}")
-    print(f"  Modo: {'DEMO' if args.demo else 'PRODUCCIÓN'}")
     print(f"  HAM10000: {'✅ Cargado' if ham10000_path else '❌ No disponible'}")
-    print(f"  CNN: {'✅ Cargada' if classifier.loaded else '⚠️ Demo mode'}")
+    print(f"  CNN: {'✅ Cargada' if classifier.loaded else '❌ Modelo no encontrado'}")
     print(f"{'='*60}\n")
 
     socketio.run(app, host=FLASK_HOST, port=FLASK_PORT,

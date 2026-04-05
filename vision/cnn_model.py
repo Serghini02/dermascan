@@ -155,31 +155,4 @@ class SkinClassifier:
             "prob_vector": [round(float(p), 4) for p in probs],
         }
 
-    def predict_demo(self):
-        """Predicción demo sin imagen (con probabilidades simuladas)."""
-        # Simular distribución realista
-        probs = np.random.dirichlet(np.ones(7) * 0.5)
-        predicted_idx = int(np.argmax(probs))
-        diagnosis_info = DIAGNOSIS_CLASSES[predicted_idx]
-        risk_info = RISK_LEVELS[diagnosis_info["risk"]]
 
-        probabilities = {}
-        for idx, prob in enumerate(probs):
-            class_info = DIAGNOSIS_CLASSES[idx]
-            probabilities[class_info["code"]] = {
-                "name": class_info["name"],
-                "probability": round(float(prob), 4),
-                "risk": class_info["risk"],
-            }
-
-        return {
-            "diagnosis_code": diagnosis_info["code"],
-            "diagnosis_name": diagnosis_info["name"],
-            "confidence": round(float(probs[predicted_idx]), 4),
-            "risk_level": diagnosis_info["risk"],
-            "risk_label": risk_info["label"],
-            "risk_color": risk_info["color"],
-            "probabilities": probabilities,
-            "prob_vector": [round(float(p), 4) for p in probs],
-            "demo_mode": True,
-        }
