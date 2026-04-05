@@ -154,5 +154,3 @@ class SkinClassifier:
             "probabilities": probabilities,
             "prob_vector": [round(float(p), 4) for p in probs],
         }
-
-

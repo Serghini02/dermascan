@@ -618,7 +618,7 @@ function displayNlpResults(data) {
 }
 
 // =============================================================================
-// DRL
+// DRL — Solo estadísticas y métricas (sin entrenamiento)
 // =============================================================================
 let rewardChart = null, lossChart = null;
 
@@ -634,102 +634,75 @@ function initCharts() {
     rewardChart = new Chart(document.getElementById('rewardChart'), {
         type: 'line', data: {
             labels: [], datasets: [
-                { label: 'Reward', data: [], borderColor: '#0d9488', backgroundColor: 'rgba(13,148,136,0.08)', borderWidth: 2, fill: true, tension: 0.3, pointRadius: 0 },
-                { label: 'Media(50)', data: [], borderColor: '#3b82f6', borderWidth: 2, borderDash: [5, 5], fill: false, tension: 0.3, pointRadius: 0 },
+                { label: 'Reward por episodio', data: [], borderColor: '#0d9488', backgroundColor: 'rgba(13,148,136,0.08)', borderWidth: 2, fill: true, tension: 0.3, pointRadius: 0 },
+                { label: 'Media móvil (50)', data: [], borderColor: '#3b82f6', borderWidth: 2, borderDash: [5, 5], fill: false, tension: 0.3, pointRadius: 0 },
             ]
-        }, options: opts,
+        }, options: { ...opts, plugins: { ...opts.plugins, title: { display: true, text: 'Recompensas del Agente', color: '#1a202c' } } },
     });
     lossChart = new Chart(document.getElementById('lossChart'), {
         type: 'line', data: {
             labels: [], datasets: [
-                { label: 'Loss', data: [], borderColor: '#ef4444', backgroundColor: 'rgba(239,68,68,0.1)', borderWidth: 2, fill: true, tension: 0.3, pointRadius: 0 },
+                { label: 'Loss (Q-network)', data: [], borderColor: '#ef4444', backgroundColor: 'rgba(239,68,68,0.1)', borderWidth: 2, fill: true, tension: 0.3, pointRadius: 0 },
             ]
-        }, options: opts,
+        }, options: { ...opts, plugins: { ...opts.plugins, title: { display: true, text: 'Pérdida del Entrenamiento', color: '#1a202c' } } },
     });
+
+    // Cargar datos históricos si existen
+    loadChartsFromHistory();
 }
 
-async function startTraining() {
-    const eps = parseInt(document.getElementById('rlEpisodes').value) || 300;
-    document.getElementById('trainBtn').disabled = true;
-    document.getElementById('trainBtn').innerHTML = '<span class="spinner"></span> Entrenando...';
-    document.getElementById('trainingProgress').style.display = 'block';
-    if (rewardChart) { rewardChart.data.labels = []; rewardChart.data.datasets.forEach(d => d.data = []); rewardChart.update('none'); }
-    if (lossChart) { lossChart.data.labels = []; lossChart.data.datasets[0].data = []; lossChart.update('none'); }
-    try { await fetch('/api/rl/train', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ episodes: eps }) }); }
-    catch (e) { document.getElementById('trainBtn').disabled = false; document.getElementById('trainBtn').innerHTML = '🚀 Entrenar'; }
-}
-
-const rwdHist = [];
-function updateTrainingProgress(d) {
-    document.getElementById('progressLabel').textContent = `Episodio ${d.episode + 1}/${d.total_episodes}`;
-    document.getElementById('progressPercent').textContent = `${d.progress}%`;
-    document.getElementById('progressFill').style.width = `${d.progress}%`;
-    document.getElementById('metricEpisode').textContent = d.episode + 1;
-    document.getElementById('metricReward').textContent = d.reward;
-    document.getElementById('metricAvg').textContent = d.avg_reward;
-    document.getElementById('metricEpsilon').textContent = d.epsilon;
-    document.getElementById('metricLoss').textContent = d.loss.toFixed(5);
-    if (d.episode % 5 === 0) {
-        rwdHist.push(d.reward);
-        if (rewardChart) {
-            rewardChart.data.labels.push(d.episode);
-            rewardChart.data.datasets[0].data.push(d.reward);
-            const w = Math.min(50, rwdHist.length);
-            rewardChart.data.datasets[1].data.push(rwdHist.slice(-w).reduce((a, b) => a + b, 0) / w);
-            rewardChart.update('none');
+async function loadChartsFromHistory() {
+    try {
+        const r = await fetch('/api/rl/status');
+        const d = await r.json();
+        if (d.rewards_history && d.rewards_history.length > 0) {
+            rewardChart.data.labels = d.rewards_history.map((_, i) => i);
+            rewardChart.data.datasets[0].data = d.rewards_history;
+            const ma = [];
+            for (let i = 0; i < d.rewards_history.length; i++) {
+                const s = Math.max(0, i - 49);
+                const w = d.rewards_history.slice(s, i + 1);
+                ma.push(w.reduce((a, b) => a + b, 0) / w.length);
+            }
+            rewardChart.data.datasets[1].data = ma;
+            rewardChart.update();
         }
-        if (lossChart) { lossChart.data.labels.push(d.episode); lossChart.data.datasets[0].data.push(d.loss); lossChart.update('none'); }
-    }
+        if (d.losses_history && d.losses_history.length > 0) {
+            lossChart.data.labels = d.losses_history.map((_, i) => i);
+            lossChart.data.datasets[0].data = d.losses_history;
+            lossChart.update();
+        }
+    } catch (e) { /* silencioso */ }
 }
 
-function onTrainingComplete(d) {
-    document.getElementById('trainBtn').disabled = false;
-    document.getElementById('trainBtn').innerHTML = '🚀 Entrenar Agente';
-    document.getElementById('progressLabel').textContent = '✅ Completado';
-    if (d.rewards_history && rewardChart) {
-        rewardChart.data.labels = d.rewards_history.map((_, i) => i);
-        rewardChart.data.datasets[0].data = d.rewards_history;
-        const ma = []; for (let i = 0; i < d.rewards_history.length; i++) { const s = Math.max(0, i - 49); const w = d.rewards_history.slice(s, i + 1); ma.push(w.reduce((a, b) => a + b, 0) / w.length); }
-        rewardChart.data.datasets[1].data = ma;
-        rewardChart.update();
-    }
-    if (d.losses_history && lossChart) {
-        lossChart.data.labels = d.losses_history.map((_, i) => i);
-        lossChart.data.datasets[0].data = d.losses_history;
-        lossChart.update();
-    }
-    loadAgentStatus();
-}
-
-async function evaluateAgent() {
-    document.getElementById('evalResults').style.display = 'block';
+async function loadEvaluation() {
     document.getElementById('evalContent').innerHTML = '<span class="spinner"></span> Evaluando...';
     try {
         const r = await (await fetch('/api/rl/evaluate')).json();
         if (r.error) { document.getElementById('evalContent').textContent = r.error; return; }
         document.getElementById('evalContent').innerHTML = `
             <div class="eval-grid">
-                <div class="eval-item"><span class="eval-item-label">Accuracy</span><span class="eval-item-value ${r.accuracy > 70 ? 'good' : r.accuracy > 40 ? 'warn' : 'bad'}">${r.accuracy}%</span></div>
-                <div class="eval-item"><span class="eval-item-label">Risk Acc</span><span class="eval-item-value ${r.risk_accuracy > 70 ? 'good' : 'warn'}">${r.risk_accuracy}%</span></div>
-                <div class="eval-item"><span class="eval-item-label">Avg Reward</span><span class="eval-item-value ${r.avg_reward > 0 ? 'good' : 'bad'}">${r.avg_reward}</span></div>
-                <div class="eval-item"><span class="eval-item-label">Avg Preguntas</span><span class="eval-item-value">${r.avg_questions}</span></div>
-                <div class="eval-item"><span class="eval-item-label">Falsos Neg</span><span class="eval-item-value bad">${r.false_negatives}</span></div>
-                <div class="eval-item"><span class="eval-item-label">Falsos Pos</span><span class="eval-item-value warn">${r.false_positives}</span></div>
+                <div class="eval-item"><span class="eval-item-label">Accuracy diagnóstico</span><span class="eval-item-value ${r.accuracy > 70 ? 'good' : r.accuracy > 40 ? 'warn' : 'bad'}">${r.accuracy}%</span></div>
+                <div class="eval-item"><span class="eval-item-label">Accuracy riesgo</span><span class="eval-item-value ${r.risk_accuracy > 70 ? 'good' : 'warn'}">${r.risk_accuracy}%</span></div>
+                <div class="eval-item"><span class="eval-item-label">Reward medio</span><span class="eval-item-value ${r.avg_reward > 0 ? 'good' : 'bad'}">${r.avg_reward}</span></div>
+                <div class="eval-item"><span class="eval-item-label">Preguntas/sesión</span><span class="eval-item-value">${r.avg_questions}</span></div>
+                <div class="eval-item"><span class="eval-item-label">Falsos negativos</span><span class="eval-item-value bad">${r.false_negatives}</span></div>
+                <div class="eval-item"><span class="eval-item-label">Falsos positivos</span><span class="eval-item-value warn">${r.false_positives}</span></div>
             </div>`;
-    } catch (e) { document.getElementById('evalContent').textContent = e.message; }
+    } catch (e) { document.getElementById('evalContent').textContent = 'Error al cargar métricas'; }
 }
 
 async function loadAgentStatus() {
     try {
         const d = await (await fetch('/api/rl/status')).json();
         document.getElementById('agentStatusContent').innerHTML = `
-            <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;font-size:0.82rem">
-                <div>Modelo: <strong>${d.model_loaded ? '✅' : '❌'}</strong></div>
-                <div>Epsilon: <strong>${d.epsilon.toFixed(4)}</strong></div>
-                <div>Steps: <strong>${d.steps_done}</strong></div>
-                <div>Episodios: <strong>${d.episodes_trained}</strong></div>
+            <div class="eval-grid" style="grid-template-columns:repeat(4,1fr)">
+                <div class="eval-item"><span class="eval-item-label">Modelo</span><span class="eval-item-value ${d.model_loaded ? 'good' : 'bad'}">${d.model_loaded ? '✅ Cargado' : '❌ No cargado'}</span></div>
+                <div class="eval-item"><span class="eval-item-label">Epsilon</span><span class="eval-item-value">${d.epsilon.toFixed(4)}</span></div>
+                <div class="eval-item"><span class="eval-item-label">Steps totales</span><span class="eval-item-value">${d.steps_done.toLocaleString()}</span></div>
+                <div class="eval-item"><span class="eval-item-label">Episodios</span><span class="eval-item-value">${d.episodes_trained.toLocaleString()}</span></div>
             </div>`;
-    } catch (e) { document.getElementById('agentStatusContent').textContent = 'Error'; }
+    } catch (e) { document.getElementById('agentStatusContent').textContent = 'Error al conectar con el servidor'; }
 }
 
 // =============================================================================
@@ -766,4 +739,8 @@ document.addEventListener('DOMContentLoaded', () => {
     initSpeechRecognition();
     initCharts();
     loadAgentStatus();
+    loadEvaluation();
 });
+
+
+
