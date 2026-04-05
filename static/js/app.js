@@ -175,14 +175,29 @@ function drawEdges(canvas, edges, sw, sh) {
     const ch = canvas.height;
     ctx.clearRect(0, 0, cw, ch);
 
-    // Calcular umbral adaptativo (media + 1.5*desviación)
+    // Obtener posición y radio del círculo guía real del DOM
+    const circleEl = document.querySelector('.camera-circle');
+    let clipCx = cw / 2, clipCy = ch / 2, clipR = Math.min(cw, ch) * 0.35;
+    if (circleEl) {
+        const canvasRect = canvas.getBoundingClientRect();
+        const circleRect = circleEl.getBoundingClientRect();
+        clipCx = circleRect.left - canvasRect.left + circleRect.width / 2;
+        clipCy = circleRect.top - canvasRect.top + circleRect.height / 2;
+        clipR = circleRect.width / 2;
+    }
+
+    // Calcular umbral adaptativo SOLO dentro del círculo (en coordenadas de la imagen pequeña)
+    const cx = sw / 2, cy = sh / 2;
+    const scaleX = cw / sw;
+    const scaleY = ch / sh;
+    // Radio del clip en coordenadas de imagen pequeña
+    const clipRSmall = clipR / scaleX;
+
     let sum = 0, count = 0;
-    // Solo calcular en la zona central (donde está el círculo guía)
-    const cx = sw / 2, cy = sh / 2, radius = sw * 0.275;
     for (let y = 0; y < sh; y++) {
         for (let x = 0; x < sw; x++) {
-            const dx = x - cx, dy = y - cy;
-            if (dx * dx + dy * dy < radius * radius) {
+            const dx = (x - cx), dy = (y - cy);
+            if (dx * dx + dy * dy < clipRSmall * clipRSmall) {
                 sum += edges[y * sw + x];
                 count++;
             }
@@ -191,25 +206,25 @@ function drawEdges(canvas, edges, sw, sh) {
     const mean = count > 0 ? sum / count : 30;
     const threshold = Math.max(mean * 1.8, 25);
 
-    // Dibujar contornos escalados
-    const scaleX = cw / sw;
-    const scaleY = ch / sh;
+    // Aplicar clip circular exacto al canvas (nada fuera del círculo se pintará)
+    ctx.save();
+    ctx.beginPath();
+    ctx.arc(clipCx, clipCy, clipR, 0, Math.PI * 2);
+    ctx.clip();
 
-    ctx.fillStyle = 'rgba(13, 148, 136, 0.7)';
-
+    // Pintar bordes teal solo dentro del clip
+    ctx.fillStyle = 'rgba(13, 148, 136, 0.75)';
     for (let y = 1; y < sh - 1; y++) {
         for (let x = 1; x < sw - 1; x++) {
             if (edges[y * sw + x] > threshold) {
-                // Solo dentro de la zona del círculo guía (con margen)
-                const dx = x - cx, dy = y - cy;
-                if (dx * dx + dy * dy < (radius * 1.3) * (radius * 1.3)) {
-                    const px = Math.floor(x * scaleX);
-                    const py = Math.floor(y * scaleY);
-                    ctx.fillRect(px, py, Math.ceil(scaleX) + 1, Math.ceil(scaleY) + 1);
-                }
+                const px = Math.floor(x * scaleX);
+                const py = Math.floor(y * scaleY);
+                ctx.fillRect(px, py, Math.ceil(scaleX) + 1, Math.ceil(scaleY) + 1);
             }
         }
     }
+
+    ctx.restore();
 }
 
 function resetScan() {
