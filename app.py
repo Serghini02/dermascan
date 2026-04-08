@@ -31,6 +31,8 @@ from nlp.symptom_extractor import extract_symptoms, symptoms_to_vector, get_symp
 from nlp.regex_corrector import correct_text
 from rl.dqn_agent import DQNAgent
 from rl.train import train_agent, evaluate_agent
+from vision.expert_system import MedicalExpertSystem
+from vision.metaheuristic_tuner import GeneticOptimizer
 
 # =============================================================================
 # INIT
@@ -47,6 +49,7 @@ classifier.load_model()
 dqn_agent = DQNAgent()
 dqn_agent.load()
 tokenizer = get_tokenizer()
+expert_system = MedicalExpertSystem()
 
 # Estado de la sesión de diagnóstico actual
 current_session = {
@@ -313,6 +316,17 @@ def rl_train():
     threading.Thread(target=run, daemon=True).start()
     return jsonify({"status": "training_started", "episodes": episodes})
 
+@app.route('/api/optimize', methods=['POST'])
+def run_optimization():
+    """Ejecuta la búsqueda metaheurística de hiperparámetros."""
+    def run():
+        tuner = GeneticOptimizer(population_size=10, generations=5)
+        best_params = tuner.optimize()
+        socketio.emit('optimization_complete', best_params)
+
+    threading.Thread(target=run, daemon=True).start()
+    return jsonify({"status": "optimization_started"})
+
 
 @app.route('/api/rl/evaluate', methods=['GET'])
 def rl_evaluate():
@@ -384,6 +398,9 @@ def _finalize_diagnosis():
     abcde = current_session.get("abcde_scores", {})
     symptoms = current_session.get("symptoms", {})
 
+    # Generar diagnóstico refinado mediante el Sistema Experto (Reglas)
+    expert_result = expert_system.apply_rules(cnn, abcde, symptoms)
+
     # Guardar en BD
     db.add_consultation(
         cnn_diagnosis=cnn.get("diagnosis_code"),
@@ -392,20 +409,22 @@ def _finalize_diagnosis():
         symptoms=symptoms,
         abcde_scores=abcde,
         drl_diagnosis=cnn.get("diagnosis_code"),
-        risk_level=cnn.get("risk_level"),
+        risk_level=expert_result["refined_risk"],
         questions_asked=len(current_session.get("questions_asked", [])),
-        final_recommendation=_generate_recommendation(cnn, abcde, symptoms),
+        final_recommendation=expert_result["recommendation"],
     )
 
     return {
         "diagnosis": cnn.get("diagnosis_name", "No determinado"),
         "diagnosis_code": cnn.get("diagnosis_code"),
-        "risk_level": cnn.get("risk_level", "desconocido"),
-        "risk_label": cnn.get("risk_label", "—"),
+        "risk_level": expert_result["refined_risk"],
+        "risk_label": expert_result["risk_label"],
+        "risk_color": expert_result["risk_color"],
         "confidence": cnn.get("confidence", 0),
         "abcde_total": abcde.get("total_score", 0),
-        "recommendation": _generate_recommendation(cnn, abcde, symptoms),
+        "recommendation": expert_result["recommendation"],
         "symptom_summary": get_symptom_summary(symptoms),
+        "expert_rules": expert_result["rules_triggered"]
     }
 
 
