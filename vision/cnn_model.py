@@ -106,7 +106,7 @@ class SkinClassifier:
             image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
             image = Image.fromarray(image)
 
-        # Test-Time Augmentation (TTA) para máxima estabilidad
+        # Consenso: 5 pasadas de inferencia con diferentes aumentos (TTA enriquecido)
         with torch.no_grad():
             # 1. Imagen original
             img_tensor = data_transforms["val"](image).unsqueeze(0).to(self.device)
@@ -121,12 +121,24 @@ class SkinClassifier:
             img_vf = transforms.functional.vflip(image)
             img_tensor_vf = data_transforms["val"](img_vf).unsqueeze(0).to(self.device)
             out3 = self.model(img_tensor_vf)
+
+            # 4. Rotación 90 grados
+            img_r90 = transforms.functional.rotate(image, 90)
+            img_tensor_r90 = data_transforms["val"](img_r90).unsqueeze(0).to(self.device)
+            out4 = self.model(img_tensor_r90)
+
+            # 5. Rotación 270 grados
+            img_r270 = transforms.functional.rotate(image, 270)
+            img_tensor_r270 = data_transforms["val"](img_r270).unsqueeze(0).to(self.device)
+            out5 = self.model(img_tensor_r270)
             
-            # Promediar probabilidades (TTA Ensemble)
+            # Promediar probabilidades (Consenso de 5 modelos augmentados)
             probs1 = torch.softmax(out1, dim=1)
             probs2 = torch.softmax(out2, dim=1)
             probs3 = torch.softmax(out3, dim=1)
-            avg_probs = (probs1 + probs2 + probs3) / 3
+            probs4 = torch.softmax(out4, dim=1)
+            probs5 = torch.softmax(out5, dim=1)
+            avg_probs = (probs1 + probs2 + probs3 + probs4 + probs5) / 5
             probs = avg_probs.cpu().numpy()[0]
 
         # Resultado

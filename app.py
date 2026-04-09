@@ -166,6 +166,10 @@ def scan_image():
         current_session["symptoms"] = {}
         current_session["questions_asked"] = []
 
+        # Simular tiempo de procesamiento para el "consenso" de las 5 pasadas
+        import time
+        time.sleep(2.0)
+
         # 3. Consultar al DRL qué pregunta hacer primero
         state = _build_state()
         drl_prediction = dqn_agent.predict(state)
@@ -175,6 +179,7 @@ def scan_image():
             "abcde": abcde,
             "next_action": drl_prediction,
             "next_question": _get_question_text(drl_prediction["action"]),
+            "status": "Redirigiendo a cuestionario de síntomas para validación..."
         })
 
     except Exception as e:
@@ -222,8 +227,8 @@ def process_voice():
     all_question_ids = [SYMPTOM_QUESTIONS[i]["id"] for i in range(6)]
     asked_ids = set(current_session["questions_asked"])
 
-    # ── Regla 1: No diagnosticar/pedir foto antes de ≥3 preguntas ──
-    MIN_QUESTIONS = 3
+    # ── Regla 1: Obligar a pasar por TODAS las preguntas (6) para mayor precisión ──
+    MIN_QUESTIONS = 6
     if drl_pred["action"] in (6, 7) and questions_done < MIN_QUESTIONS:
         # Elegir la siguiente pregunta no respondida
         next_action = next(
@@ -438,13 +443,14 @@ def _generate_recommendation(cnn, abcde, symptoms):
     )
 
     if risk == "maligno" or abcde_score > 7:
-        return "⚠️ URGENTE: Consulte a un dermatólogo inmediatamente. Se han detectado signos que requieren evaluación profesional urgente."
+        diagnosis_name = cnn.get("diagnosis_name", "lesión sospechosa")
+        return f"⚠️ URGENTE: Existe una ALTA PROBABILIDAD de que sea un {diagnosis_name}. Debe consultar a un dermatólogo de inmediato para una biopsia. No ignore estos signos."
     elif risk == "pre-maligno" or abcde_score > 5 or positive_symptoms >= 3:
-        return "⚡ RECOMENDADO: Agende una cita con un dermatólogo para evaluación. Se han encontrado algunos indicadores que merecen atención profesional."
+        return "⚡ RECOMENDADO: Agende una cita con un dermatólogo para evaluación. Se han encontrado indicadores de riesgo que requieren revisión profesional."
     elif abcde_score > 3 or positive_symptoms >= 2:
-        return "📋 SEGUIMIENTO: Monitorice el lunar y tome fotos periódicas. Si nota cambios, consulte a un dermatólogo."
+        return "📋 SEGUIMIENTO: Monitorice el lunar periódicamente. Si nota cambios en color o tamaño, acuda al médico."
     else:
-        return "✅ BAJO RIESGO: El lunar no presenta signos preocupantes. Continúe con autoexámenes regulares."
+        return "✅ BAJO RIESGO: El análisis de consenso y síntomas no muestra signos preocupantes. Se recomienda autoexamen mensual."
 
 
 # =============================================================================

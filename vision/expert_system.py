@@ -61,7 +61,8 @@ class MedicalExpertSystem:
             rules_triggered.append("R4: Diámetro mayor a 6mm (criterio clínico D).")
 
         # Determinar recomendación final basada en el riesgo refinado
-        recommendation, action_priority = self._get_recommendation(refined_risk, abcde_scores, symptoms)
+        diagnosis_name = cnn_result.get("diagnosis_name", "lesión sospechosa")
+        recommendation, action_priority = self._get_recommendation(refined_risk, abcde_scores, symptoms, diagnosis_name)
 
         return {
             "refined_risk": refined_risk,
@@ -72,22 +73,22 @@ class MedicalExpertSystem:
             "action_priority": action_priority
         }
 
-    def _get_recommendation(self, risk, abcde, symptoms):
+    def _get_recommendation(self, risk, abcde, symptoms, diagnosis_name="lesión sospechosa"):
         """Genera recomendación basada en riesgo y prioridades."""
         abcde_score = abcde.get("total_score", 0)
         positive_symptoms = sum(1 for s in symptoms.values() if isinstance(s, dict) and s.get("positive") is True)
 
         if risk == "maligno":
-            return ("⚠️ URGENTE: Los indicadores sugieren una lesión de alto riesgo. "
-                    "Se recomienda acudir a un dermatólogo en las próximas 24-48 horas para una biopsia.", "alta")
+            return (f"⚠️ URGENTE: El análisis de consenso y clínico indica una ALTA PROBABILIDAD de que sea un {diagnosis_name}. "
+                    "Debe acudir a un dermatólogo de inmediato para una biopsia. No demore esta consulta.", "alta")
         
         if risk == "pre-maligno":
-            return ("⚡ IMPORTANTE: Se han detectado rasgos atípicos. "
-                    "Programe una cita con su especialista para una revisión dermatoscópica.", "media")
+            return ("⚡ IMPORTANTE: Se han detectado rasgos atípicos y síntomas que requieren atención. "
+                    "Programe una cita con su especialista para una revisión dermatoscópica profesional.", "media")
         
         if abcde_score > 4 or positive_symptoms >= 2:
-            return ("📋 SEGUIMIENTO: Aunque los modelos no indican malignidad clara, hay rasgos que vigilar. "
-                    "Repita el escaneo en 4 semanas y observe cambios.", "baja")
+            return ("📋 SEGUIMIENTO: Aunque no hay signos de malignidad inmediata, existen rasgos que deben vigilarse. "
+                    "Vuelva a escanear en 30 días y si nota evolución rápida, consulte al médico.", "baja")
         
-        return ("✅ BAJO RIESGO: Los indicadores están dentro de la normalidad. "
-                "Continúe con sus revisiones habituales y use protección solar.", "nula")
+        return ("✅ BAJO RIESGO: Los indicadores de consenso muestran una lesión aparentemente benigna. "
+                "Mantenga sus revisiones periódicas y use fotoprotección.", "nula")

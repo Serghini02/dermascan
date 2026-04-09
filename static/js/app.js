@@ -26,6 +26,7 @@ let edgeDetectionActive = false;
 let edgeAnimId = null;
 let edgeBuffer = []; // Buffer para suavizado temporal
 const BUFFER_SIZE = 3;
+let currentQuestionId = ''; // Rastreador de la pregunta activa
 
 async function initCamera() {
     try {
@@ -363,17 +364,20 @@ async function sendScan(imageData) {
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ image: imageData }),
         });
+
+        // Mientras se procesa (con el delay del servidor), enviamos al usuario a las preguntas
+        switchTab('nlp');
+        document.getElementById('questionText').innerHTML = '<span class="spinner-small"></span> Ejecutando consenso de 5 modelos... espere';
+
         const data = await res.json();
         if (data.error) { container.innerHTML = `<p>${data.error}</p>`; return; }
 
-        // Retardo psicológico para aumentar confianza del usuario
-        const elapsed = Date.now() - startTime;
-        const minDuration = 1500; // 1.5 segundos
-        if (elapsed < minDuration) {
-            await new Promise(resolve => setTimeout(resolve, minDuration - elapsed));
-        }
-
         displayScanResults(data);
+        
+        // Hablar la primera pregunta automáticamente
+        if (data.next_question) {
+            setTimeout(() => speakQuestion(), 500);
+        }
     } catch (e) {
         container.innerHTML = `<p>Error: ${e.message}</p>`;
     }
@@ -393,7 +397,7 @@ function displayScanResults(data) {
                 <span class="risk-badge ${riskClass}">${cnn.risk_label} riesgo</span>
             </div>
             <div style="margin-top:6px;font-size:0.85rem;color:var(--text-secondary)">
-                Confianza: ${(cnn.confidence * 100).toFixed(1)}%
+                Consenso (5 pasadas): ${(cnn.confidence * 100).toFixed(1)}% de precisión
             </div>
         </div>`;
 
@@ -449,6 +453,8 @@ function displayScanResults(data) {
 
         // Update NLP tab question
         document.getElementById('questionText').textContent = data.next_question;
+        currentQuestionId = data.next_action.action <= 5 ? 
+            ['dolor','picor','tamaño','sangrado','color','duracion'][data.next_action.action] : '';
         document.getElementById('btnSpeak').disabled = false;
         document.getElementById('btnMic').disabled = false;
     }
@@ -538,7 +544,7 @@ async function sendVoiceResponse(text) {
         const res = await fetch('/api/voice/process', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ text, question_id: '' }),
+            body: JSON.stringify({ text, question_id: currentQuestionId }),
         });
         const data = await res.json();
         displayNlpResults(data);
@@ -588,6 +594,10 @@ function displayNlpResults(data) {
     // Next question
     if (data.next_question) {
         document.getElementById('questionText').textContent = data.next_question;
+        if (data.next_action) {
+            currentQuestionId = data.next_action.action <= 5 ? 
+                ['dolor','picor','tamaño','sangrado','color','duracion'][data.next_action.action] : '';
+        }
     }
 
     // Final diagnosis
