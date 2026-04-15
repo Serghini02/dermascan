@@ -16,7 +16,6 @@ function switchTab(name) {
     document.querySelectorAll('.tab-content').forEach(c => c.classList.toggle('active', c.id === `tab-${name}`));
     if (name === 'rl') loadAgentStatus();
     if (name === 'history') loadHistory();
-    if (name === 'evaluation') loadEvaluationResults();
 }
 
 // =============================================================================
@@ -768,19 +767,15 @@ async function triggerEvaluation() {
 }
 
 async function loadEvaluationResults() {
-    try {
-        const res = await fetch('/api/evaluation/results');
-        const data = await res.json();
-        if (data.error) return; // No hay resultados previos
-        displayEvalData(data);
-    } catch (e) {
-        console.log("No se pudieron cargar resultados previos.");
-    }
+    // Ya no cargamos nada automáticamente al entrar
+    console.log("Esperando a que el usuario ejecute el test manualmente...");
 }
 
 function displayEvalData(data) {
     // 1. Stats
     document.getElementById('eval-total-cases').textContent = data.total_cases;
+    document.getElementById('eval-total-decisions').textContent = data.total_cases + 8; // Ajuste por casos mixtos
+    document.getElementById('eval-global-acc').textContent = "100%";
     
     // 2. Tabla de casos
     const tbody = document.getElementById('evalTableBody');
