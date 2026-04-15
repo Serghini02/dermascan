@@ -16,6 +16,7 @@ function switchTab(name) {
     document.querySelectorAll('.tab-content').forEach(c => c.classList.toggle('active', c.id === `tab-${name}`));
     if (name === 'rl') loadAgentStatus();
     if (name === 'history') loadHistory();
+    if (name === 'evaluation') loadEvaluationResults();
 }
 
 // =============================================================================
@@ -735,6 +736,134 @@ async function loadHistory() {
         }).join('');
     } catch (e) { document.getElementById('historyList').innerHTML = `<p>${e.message}</p>`; }
 }
+
+// =============================================================================
+// EVALUATION NLP DASHBOARD
+// =============================================================================
+let evalBarChart = null, evalRadarChart = null;
+
+async function triggerEvaluation() {
+    const btn = document.getElementById('btnRunEval');
+    const originalText = btn.innerHTML;
+    btn.disabled = true;
+    btn.innerHTML = '<span class="spinner-small"></span> Ejecutando Test...';
+
+    try {
+        const res = await fetch('/api/evaluation/run', { method: 'POST' });
+        const data = await res.json();
+        
+        if (data.error) {
+            alert("Error: " + data.error);
+        } else {
+            // Actualizar la vista con los nuevos datos
+            displayEvalData(data);
+        }
+    } catch (e) {
+        console.error(e);
+        alert("Fallo en la conexión con el servidor");
+    } finally {
+        btn.disabled = false;
+        btn.innerHTML = originalText;
+    }
+}
+
+async function loadEvaluationResults() {
+    try {
+        const res = await fetch('/api/evaluation/results');
+        const data = await res.json();
+        if (data.error) return; // No hay resultados previos
+        displayEvalData(data);
+    } catch (e) {
+        console.log("No se pudieron cargar resultados previos.");
+    }
+}
+
+function displayEvalData(data) {
+    // 1. Stats
+    document.getElementById('eval-total-cases').textContent = data.total_cases;
+    
+    // 2. Tabla de casos
+    const tbody = document.getElementById('evalTableBody');
+    tbody.innerHTML = data.cases.map(c => {
+        const isOk = c.case_accuracy === 1.0;
+        return `
+            <tr style="border-bottom: 1px solid var(--border-light)">
+                <td style="padding: 12px; font-weight: 700">#${c.id}</td>
+                <td style="padding: 12px; color: var(--secondary)">${c.question.toUpperCase()}</td>
+                <td style="padding: 12px; font-style: italic; font-size: 0.85rem">"${c.text}"</td>
+                <td style="padding: 12px">
+                    <span class="badge ${isOk ? 'badge-success' : 'badge-danger'}">
+                        ${isOk ? 'ACIERTO' : 'FALLO'}
+                    </span>
+                </td>
+            </tr>
+        `;
+    }).join('');
+
+    // 3. Gráficos
+    renderEvalCharts(data.metrics);
+}
+
+function renderEvalCharts(metrics) {
+    const keys = ["dolor", "picor", "tamaño", "sangrado", "color", "duracion"];
+    const labels = ["Dolor", "Picor", "Tamaño", "Sangrado", "Color", "Duración"];
+    
+    const precisionData = keys.map(k => metrics[k].precision);
+    const recallData = keys.map(k => metrics[k].recall);
+    const f1Data = keys.map(k => metrics[k].f1);
+
+    // BARRAS
+    if (evalBarChart) evalBarChart.destroy();
+    evalBarChart = new Chart(document.getElementById('evalBarChart'), {
+        type: 'bar',
+        data: {
+            labels: labels,
+            datasets: [
+                { label: 'Precision', data: precisionData, backgroundColor: '#38bdf8' },
+                { label: 'Recall', data: recallData, backgroundColor: '#818cf8' }
+            ]
+        },
+        options: {
+            responsive: true, maintainAspectRatio: false,
+            plugins: { legend: { labels: { color: '#94a3b8' } } },
+            scales: {
+                y: { beginAtZero: true, max: 1.2, ticks: { color: '#94a3b8' }, grid: { color: 'rgba(255,255,255,0.05)' } },
+                x: { ticks: { color: '#94a3b8' }, grid: { display: false } }
+            }
+        }
+    });
+
+    // RADAR
+    if (evalRadarChart) evalRadarChart.destroy();
+    evalRadarChart = new Chart(document.getElementById('evalRadarChart'), {
+        type: 'radar',
+        data: {
+            labels: labels,
+            datasets: [{
+                label: 'F1 Score',
+                data: f1Data,
+                backgroundColor: 'rgba(56, 189, 248, 0.2)',
+                borderColor: '#38bdf8',
+                borderWidth: 2,
+                pointBackgroundColor: '#38bdf8'
+            }]
+        },
+        options: {
+            responsive: true, maintainAspectRatio: false,
+            scales: {
+                r: {
+                    angleLines: { color: 'rgba(255,255,255,0.05)' },
+                    grid: { color: 'rgba(255,255,255,0.05)' },
+                    pointLabels: { color: '#94a3b8', font: { size: 10 } },
+                    ticks: { display: false },
+                    suggestedMin: 0, suggestedMax: 1
+                }
+            },
+            plugins: { legend: { display: false } }
+        }
+    });
+}
+
 
 // =============================================================================
 // UTILS

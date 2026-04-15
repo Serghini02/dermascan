@@ -369,6 +369,35 @@ def dataset_stats():
     return jsonify(db.get_ham10000_stats())
 
 
+@app.route('/api/evaluation/results', methods=['GET'])
+def get_evaluation_results():
+    """Sirve los resultados existentes."""
+    path = os.path.join(os.path.dirname(__file__), "evaluation", "evaluation_results.json")
+    if not os.path.exists(path):
+        return jsonify({"error": "No hay resultados. Ejecute la evaluación primero."}), 404
+    with open(path, "r", encoding="utf-8") as f:
+        return jsonify(json.load(f))
+
+
+@app.route('/api/evaluation/run', methods=['POST'])
+def run_evaluation():
+    """Ejecuta el script de evaluación y devuelve los nuevos resultados."""
+    import subprocess
+    script_path = os.path.join(os.path.dirname(__file__), "evaluation", "evaluate_symptom_extractor.py")
+    
+    try:
+        # Ejecutamos el script y esperamos a que termine
+        result = subprocess.run(["python", script_path], capture_output=True, text=True, check=True)
+        
+        # Leemos el archivo que acaba de generar el script
+        res_path = os.path.join(os.path.dirname(__file__), "evaluation", "evaluation_results.json")
+        with open(res_path, "r", encoding="utf-8") as f:
+            data = json.load(f)
+        return jsonify(data)
+    except Exception as e:
+        return jsonify({"error": f"Error al ejecutar la evaluación: {str(e)}"}), 500
+
+
 # =============================================================================
 # HELPERS
 # =============================================================================

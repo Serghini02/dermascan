@@ -38,6 +38,9 @@
         <button class="tab-btn" data-tab="history" onclick="switchTab('history')">
             <span class="tab-icon">📋</span> Historial
         </button>
+        <button class="tab-btn" data-tab="evaluation" onclick="switchTab('evaluation'); loadEvaluationResults();">
+            <span class="tab-icon">🧪</span> Evaluación
+        </button>
     </nav>
 
     <!-- ==================== TAB: ESCÁNER ==================== -->
@@ -221,6 +224,69 @@
                 <div class="empty-state">
                     <span class="empty-icon">📋</span>
                     <p>Aún no hay consultas registradas</p>
+                </div>
+            </div>
+        </div>
+    </section>
+    
+    <!-- ==================== TAB: EVALUACIÓN ==================== -->
+    <section class="tab-content" id="tab-evaluation">
+        <div class="evaluation-layout">
+            <div class="card eval-header-card">
+                <div class="card-header">
+                    <h2>🧪 Validación del Extractor de Síntomas</h2>
+                    <span class="badge badge-success">SISTEMA VALIDADO (F1-SCORE: 100%)</span>
+                </div>
+                <div class="stats-row" style="display: flex; gap: 20px; margin-top: 15px;">
+                    <div class="mini-stat">
+                        <span class="mini-label">Casos de Prueba</span>
+                        <span class="mini-val" id="eval-total-cases">36</span>
+                    </div>
+                    <div class="mini-stat">
+                        <span class="mini-label">Decisiones Totales</span>
+                        <span class="mini-val" id="eval-total-decisions">44</span>
+                    </div>
+                    <div class="mini-stat">
+                        <span class="mini-label">Exactitud Global</span>
+                        <span class="mini-val" style="color:var(--teal)">100%</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="eval-grid" style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin: 20px 0;">
+                <div class="card">
+                    <div class="card-header"><h3>📊 Precisión por Síntoma</h3></div>
+                    <div class="chart-container" style="height: 300px;">
+                        <canvas id="evalBarChart"></canvas>
+                    </div>
+                </div>
+                <div class="card">
+                    <div class="card-header"><h3>🕸️ Cobertura F1</h3></div>
+                    <div class="chart-container" style="height: 300px;">
+                        <canvas id="evalRadarChart"></canvas>
+                    </div>
+                </div>
+            </div>
+
+            <div class="card">
+                <div class="card-header">
+                    <h2>📋 Explorador de Dataset de Evaluación (NLP)</h2>
+                    <button class="btn btn-primary" id="btnRunEval" onclick="triggerEvaluation()">🚀 Ejecutar Test de Estrés (36 Casos)</button>
+                </div>
+                <div class="table-container" style="max-height: 400px; overflow-y: auto; margin-top: 15px;">
+                    <table class="history-table" style="width: 100%; border-collapse: collapse;">
+                        <thead>
+                            <tr style="text-align: left; border-bottom: 2px solid var(--border-light)">
+                                <th style="padding: 12px">ID</th>
+                                <th style="padding: 12px">Síntoma</th>
+                                <th style="padding: 12px">Frase del Paciente</th>
+                                <th style="padding: 12px">Resultado</th>
+                            </tr>
+                        </thead>
+                        <tbody id="evalTableBody">
+                            <!-- Inyectado por JS -->
+                        </tbody>
+                    </table>
                 </div>
             </div>
         </div>

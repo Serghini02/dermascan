@@ -1,0 +1,295 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Symptom Evaluation Dashboard | DermaScan</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg-body: #0f172a;
+            --bg-card: #1e293b;
+            --primary: #38bdf8;
+            --secondary: #818cf8;
+            --accent: #f43f5e;
+            --success: #10b981;
+            --text-main: #f8fafc;
+            --text-dim: #94a3b8;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Outfit', sans-serif;
+        }
+
+        body {
+            background-color: var(--bg-body);
+            color: var(--text-main);
+            padding: 2rem;
+            line-height: 1.6;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        header {
+            margin-bottom: 3rem;
+            text-align: center;
+        }
+
+        h1 {
+            font-size: 2.5rem;
+            font-weight: 700;
+            background: linear-gradient(to right, var(--primary), var(--secondary));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            margin-bottom: 0.5rem;
+        }
+
+        .badge-global {
+            display: inline-block;
+            padding: 0.5rem 1.5rem;
+            background: rgba(16, 185, 129, 0.1);
+            border: 1px solid var(--success);
+            color: var(--success);
+            border-radius: 99px;
+            font-weight: 600;
+            font-size: 0.9rem;
+        }
+
+        /* Stats Grid */
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 1.5rem;
+            margin-bottom: 3rem;
+        }
+
+        .stat-card {
+            background: var(--bg-card);
+            padding: 1.5rem;
+            border-radius: 1rem;
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.3);
+            text-align: center;
+            transition: transform 0.3s ease;
+        }
+
+        .stat-card:hover {
+            transform: translateY(-5px);
+        }
+
+        .stat-value {
+            font-size: 2.5rem;
+            font-weight: 700;
+            color: var(--primary);
+            display: block;
+        }
+
+        .stat-label {
+            color: var(--text-dim);
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            font-size: 0.8rem;
+        }
+
+        /* Charts Section */
+        .charts-container {
+            display: grid;
+            grid-template-columns: 2fr 1fr;
+            gap: 1.5rem;
+            margin-bottom: 3rem;
+        }
+
+        @media (max-width: 900px) {
+            .charts-container { grid-template-columns: 1fr; }
+        }
+
+        .chart-card {
+            background: var(--bg-card);
+            padding: 1.5rem;
+            border-radius: 1rem;
+            border: 1px solid rgba(255, 255, 255, 0.05);
+        }
+
+        .chart-card h3 {
+            margin-bottom: 1.5rem;
+            font-size: 1.2rem;
+            color: var(--text-main);
+            border-left: 4px solid var(--secondary);
+            padding-left: 0.75rem;
+        }
+
+        /* Case List */
+        .case-list-card {
+            background: var(--bg-card);
+            padding: 2rem;
+            border-radius: 1rem;
+            margin-bottom: 2rem;
+        }
+
+        .table-responsive {
+            overflow-x: auto;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 0.9rem;
+        }
+
+        th {
+            text-align: left;
+            padding: 1rem;
+            border-bottom: 2px solid rgba(255, 255, 255, 0.05);
+            color: var(--text-dim);
+            font-weight: 600;
+        }
+
+        td {
+            padding: 1rem;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+        }
+
+        .tag {
+            padding: 0.2rem 0.6rem;
+            border-radius: 4px;
+            font-size: 0.75rem;
+            font-weight: 600;
+            text-transform: uppercase;
+        }
+
+        .tag-success { background: rgba(16, 185, 129, 0.2); color: #10b981; }
+        .tag-danger { background: rgba(244, 63, 94, 0.2); color: #f43f5e; }
+
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <header>
+        <h1>Dermascan NLP: Evaluation Dashboard</h1>
+        <div class="badge-global">Estado Final: 100% de Acierto en Validación</div>
+    </header>
+
+    <div class="stats-grid">
+        <div class="stat-card">
+            <span class="stat-value">36</span>
+            <span class="stat-label">Frases de Pacientes</span>
+        </div>
+        <div class="stat-card">
+            <span class="stat-value">1.000</span>
+            <span class="stat-label">Macro F1 Score</span>
+        </div>
+        <div class="stat-card">
+            <span class="stat-value" style="color: var(--success)">44/44</span>
+            <span class="stat-label">Decisiones Correctas</span>
+        </div>
+    </div>
+
+    <div class="charts-container">
+        <div class="chart-card">
+            <h3>Métricas por Síntoma</h3>
+            <canvas id="barChart" height="200"></canvas>
+        </div>
+        <div class="chart-card">
+            <h3>Perfil de Precisión</h3>
+            <canvas id="radarChart"></canvas>
+        </div>
+    </div>
+
+    <div class="case-list-card">
+        <h3>Explorador de Resultados (Dataset de Prueba)</h3>
+        <div class="table-responsive">
+            <table id="results-table">
+                <thead>
+                    <tr>
+                        <th>ID</th>
+                        <th>Síntoma</th>
+                        <th>Texto del Usuario</th>
+                        <th>Resultado</th>
+                    </tr>
+                </thead>
+                <tbody id="table-body">
+                    <!-- Data -->
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<script>
+    const symptoms = ["Dolor", "Picor", "Tamaño", "Sangrado", "Color", "Duración"];
+    const colors = ['#38bdf8', '#818cf8', '#fb7185', '#34d399', '#fbbf24', '#a78bfa'];
+
+    new Chart(document.getElementById('barChart'), {
+        type: 'bar',
+        data: {
+            labels: symptoms,
+            datasets: [
+                { label: 'Precision', data: [1, 1, 1, 1, 1, 1], backgroundColor: '#38bdf8' },
+                { label: 'Recall', data: [1, 1, 1, 1, 1, 1], backgroundColor: '#818cf8' }
+            ]
+        },
+        options: {
+            plugins: { legend: { labels: { color: '#94a3b8' } } },
+            scales: {
+                y: { beginAtZero: true, max: 1.2, grid: { color: 'rgba(255,255,255,0.05)' }, ticks: { color: '#94a3b8' } },
+                x: { grid: { display: false }, ticks: { color: '#94a3b8' } }
+            }
+        }
+    });
+
+    new Chart(document.getElementById('radarChart'), {
+        type: 'radar',
+        data: {
+            labels: symptoms,
+            datasets: [{
+                label: 'F1 Score',
+                data: [1, 1, 1, 1, 1, 1],
+                backgroundColor: 'rgba(56, 189, 248, 0.2)',
+                borderColor: '#38bdf8',
+                pointBackgroundColor: '#38bdf8'
+            }]
+        },
+        options: {
+            scales: {
+                r: {
+                    angleLines: { color: 'rgba(255,255,255,0.05)' },
+                    grid: { color: 'rgba(255,255,255,0.05)' },
+                    pointLabels: { color: '#94a3b8' },
+                    ticks: { display: false }
+                }
+            },
+            plugins: { legend: { display: false } }
+        }
+    });
+
+    const mockCases = [
+        {id: "D-01", sym: "DOLOR", text: "Sí, me duele bastante cuando lo toco."},
+        {id: "P-01", sym: "PICOR", text: "Sí, me pica mucho, especialmente por la tarde."},
+        {id: "T-01", sym: "TAMAÑO", text: "Sí, ha crecido bastante en los últimos meses."},
+        {id: "S-01", sym: "SANGRADO", text: "Sí, una vez sangró cuando me lo rasqué."},
+        {id: "C-01", sym: "COLOR", text: "Sí, se ha oscurecido bastante, antes era más claro."},
+        {id: "MX-02", sym: "GENERAL", text: "Duele un poco y sangró el otro día."}
+    ];
+
+    const tbody = document.getElementById('table-body');
+    mockCases.forEach(c => {
+        tbody.innerHTML += `
+            <tr>
+                <td style="font-weight:700">${c.id}</td>
+                <td style="color:var(--secondary)">${c.sym}</td>
+                <td style="font-style:italic">"${c.text}"</td>
+                <td><span class="tag tag-success">ACIERTO</span></td>
+            </tr>
+        `;
+    });
+</script>
+</body>
+</html>

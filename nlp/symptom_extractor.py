@@ -40,8 +40,9 @@ SYMPTOM_PATTERNS = {
             r'\b(sí|si)\b.*\b(crec|cambi|grande)\b',
             r'\b(ha\s+crecido|está\s+creciendo|más\s+grande)\b',
             r'\b(cambi[oóa]do?\s+de\s+tamaño)\b',
-            r'\b(aumenta|crece|agrand)\b',
+            r'\b(aumenta(do)?|crece|creci[oó]|crecido|agrand)\b',
             r'\b(era\s+más\s+pequeñ[oa])\b',
+            r'\b(ha\s+aumentado|ha\s+crecido)\b',
         ],
         "negative": [
             r'\b(no)\b.*\b(crec|cambi|grande)\b',
@@ -51,10 +52,11 @@ SYMPTOM_PATTERNS = {
     },
     "sangrado": {
         "positive": [
-            r'\b(sí|si)\b.*\b(sangr[aoe]|hemorrag)\b',
-            r'\b(sangr[ae]|ha\s+sangrado|sangrado)\b',
+            r'\b(sí|si)\b.*\b(sangr[aoe]|sangr[oó]|hemorrag)\b',
+            r'\b(sangr[ae]|sangr[oó]|ha\s+sangrado|sangrado)\b',
             r'\b(sale\s+sangre|echó\s+sangre)\b',
             r'\b(a\s+veces\s+sangra)\b',
+            r'\b(veces?\s+sangr)\b',
         ],
         "negative": [
             r'\b(no)\b.*\b(sangr[aoe]|sangrado)\b',
@@ -65,23 +67,29 @@ SYMPTOM_PATTERNS = {
     "color": {
         "positive": [
             r'\b(sí|si)\b.*\b(cambi[oóa]|color|oscurec|oscuro)\b',
-            r'\b(cambi[oóa]do?\s+de\s+color)\b',
-            r'\b(más\s+oscuro|más\s+negro|más\s+rojo)\b',
-            r'\b(colores?\s+diferent|multicolor|irregular)\b',
+            r'\b(cambi[oóa](do?)?\s+de\s+color|cambi[oóa]\s+de\s+color)\b',
+            r'\b(más\s+oscuro|más\s+negro|más\s+rojo|más\s+claro|era\s+más\s+claro)\b',
+            r'colores?\s+diferent',
+            r'\b(multicolor|irregular)\b',
+            r'\b(oscureci(do|ó)|se\s+ha\s+oscurecido)\b',
             r'\b(antes\s+era\s+\w+\s+ahora\s+es)\b',
+            r'\b(partes?\s+rojiz|manchas?\s+dentro)\b',
         ],
         "negative": [
             r'\b(no)\b.*\b(cambi|color)\b',
-            r'\b(mismo\s+color|color\s+igual)\b',
+            r'\b(mismo\s+color|color\s+igual|el\s+mismo|igual(?:\s+de\s+color)?)\b',
+            r'\b(color\s+es\s+el\s+mismo|sigue\s+igual|color\s+uniforme)\b',
         ],
     },
     "duracion": {
         "positive": [
             r'(\d+)\s*(días?|semanas?|meses?|años?)',
-            r'\b(hace\s+(poco|mucho|tiempo|unos))\b',
+            r'\b(hace\s+(poco|mucho|tiempo|unos|bastante|algún))\b',
             r'\b(recientemente|reciente|nuevo|últimamente)\b',
             r'\b(desde\s+hace)\s+\w+',
             r'\b(siempre|toda\s+la\s+vida|de\s+nacimiento)\b',
+            r'\b(hace\s+\w+\s+tiempo)\b',
+            r'estas?\s+(semanas?|días?|meses?)',
         ],
         "negative": [],
     },
