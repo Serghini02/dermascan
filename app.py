@@ -184,6 +184,7 @@ def scan_image():
         return jsonify({
             "cnn": cnn_result,
             "abcde": abcde,
+            "symptom_summary": get_symptom_summary({}),
             "next_action": drl_prediction,
             "next_question": _get_question_text(drl_prediction["action"]),
             "status": "Redirigiendo a cuestionario de síntomas para validación..."

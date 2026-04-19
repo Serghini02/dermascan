@@ -375,6 +375,16 @@ async function sendScan(imageData) {
 
         displayScanResults(data);
         
+        // Renderizar cuadro inicial de síntomas (todos en ?)
+        if (data.symptom_summary) {
+            const summaryDiv = document.getElementById('symptomSummary');
+            if (summaryDiv) {
+                summaryDiv.style.display = 'block';
+                document.getElementById('symptomList').innerHTML =
+                    data.symptom_summary.map(s => `<div class="symptom-item">${s}</div>`).join('');
+            }
+        }
+
         // Hablar la primera pregunta automáticamente
         if (data.next_question) {
             setTimeout(() => speakQuestion(), 500);

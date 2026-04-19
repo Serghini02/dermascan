@@ -84,8 +84,15 @@ def _segment_mole_centered(image):
     roi_mask = np.zeros((h, w), dtype=np.uint8)
     cv2.circle(roi_mask, (cx, cy), roi_r, 255, -1)
 
+    # ---- DullRazor: Eliminar pelos detectables antes de usar k-means ----
+    gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
+    kernel_hair = cv2.getStructuringElement(cv2.MORPH_RECT, (17, 17))
+    blackhat = cv2.morphologyEx(gray, cv2.MORPH_BLACKHAT, kernel_hair)
+    _, hair_mask = cv2.threshold(blackhat, 10, 255, cv2.THRESH_BINARY)
+    img_cleaned = cv2.inpaint(image, hair_mask, 1, cv2.INPAINT_TELEA)
+
     # ---- Paso 2: Convertir a Lab y aplicar k-means (2 clusters) ----
-    lab = cv2.cvtColor(image, cv2.COLOR_BGR2Lab)
+    lab = cv2.cvtColor(img_cleaned, cv2.COLOR_BGR2Lab)
     pixels_roi = lab[roi_mask > 0].astype(np.float32)
 
     if len(pixels_roi) < 50:
@@ -241,7 +248,10 @@ def _color_variation(image, mask):
     except Exception:
         pass
 
-    score = min((l_std + a_std + b_std) / 3 * 4 + delta_e + (num_tones - 1) * 0.15, 1.0)
+    # Relajar la fórmula para que no todas salgan con coloración "anormal" elevadísima. 
+    # El color es el 3r parámetro, ajustamos la severidad al 50%.
+    raw_score = (l_std + a_std + b_std) / 3 * 2 + delta_e * 0.5 + (num_tones - 1) * 0.10
+    score = min(raw_score, 1.0)
     score = max(0.0, score)
 
     detail = f"{num_tones} tonos | ΔE: {delta_e*50:.1f} | Var L: {l_std*128:.1f}"
@@ -270,17 +280,18 @@ def _diameter(contour, img_w, img_h):
     mole_area_px = cv2.contourArea(contour)
     pct_frame = (mole_area_px / img_area) * 100
 
-    # Conversión calibrada: 640px ≈ 25mm de ancho real a 15cm
-    px_per_mm = img_w / 25.0
+    # Conversión calibrada asumiendo un encuadre más típico (50mm en vez de 25mm para evitar falsos positivos)
+    # y además, los usuarios no siempre acercan tanto el móvil (a veces 15-20cm representa un campo mayor de 5-6cm)
+    px_per_mm = img_w / 50.0
     diameter_mm = diameter_px / px_per_mm
 
     # Score: lunares > 6mm son clínicamente significativos
     if diameter_mm >= 6:
-        score = min(1.0, 0.5 + (diameter_mm - 6) / 10)
+        score = min(1.0, 0.4 + (diameter_mm - 6) / 20)
     else:
-        score = diameter_mm / 12.0
+        score = diameter_mm / 15.0
 
-    detail = f"~{diameter_mm:.1f}mm ({diameter_px:.0f}px · {pct_frame:.1f}% del frame)"
+    detail = f"~{diameter_mm:.1f}mm ({diameter_px:.0f}px · {pct_frame:.1f}%)"
     return float(score), detail
 
 
