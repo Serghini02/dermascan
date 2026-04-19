@@ -96,51 +96,69 @@ SYMPTOM_PATTERNS = {
 }
 
 
+from .symptom_model import SymptomClassifier
+
+# Instancia global del clasificador
+classifier = SymptomClassifier()
+classifier.load()
+
 def extract_symptoms(text):
     """
     Extrae síntomas del texto del paciente.
-
-    Args:
-        text: String con la respuesta del paciente
-
-    Returns:
-        dict con cada síntoma y su valor detectado
+    Usa el modelo entrenado de ML si está disponible, con fallback a regex.
     """
     text_lower = text.lower().strip()
     results = {}
 
+    # Intentar predicción con el modelo ML
+    ml_predictions = None
+    if classifier.is_trained:
+        ml_predictions = classifier.predict(text_lower)
+
     for symptom, patterns in SYMPTOM_PATTERNS.items():
         detected = False
         is_positive = None
-        matched_pattern = None
         duration_value = None
 
-        # Comprobar patrones negativos primero
-        for pattern in patterns.get("negative", []):
-            if re.search(pattern, text_lower, re.IGNORECASE):
-                is_positive = False
-                matched_pattern = pattern
-                break
-
-        # Si no hay negativo, buscar positivo
-        if is_positive is None:
-            for pattern in patterns.get("positive", []):
-                match = re.search(pattern, text_lower, re.IGNORECASE)
-                if match:
-                    is_positive = True
-                    matched_pattern = pattern
-                    detected = True
-
-                    # Extraer duración si es el síntoma de duración
-                    if symptom == "duracion":
-                        dur_match = re.search(r'(\d+)\s*(días?|semanas?|meses?|años?)',
-                                              text_lower)
-                        if dur_match:
-                            duration_value = {
-                                "value": int(dur_match.group(1)),
-                                "unit": dur_match.group(2),
-                            }
+        # Si es un síntoma que el modelo ML maneja, lo usamos
+        if ml_predictions and symptom in ml_predictions:
+            is_positive = ml_predictions[symptom]
+            detected = is_positive
+        else:
+            # Fallback a REGEX (o para duración que no está en el clasificador base)
+            # Comprobar patrones negativos primero
+            for pattern in patterns.get("negative", []):
+                if re.search(pattern, text_lower, re.IGNORECASE):
+                    is_positive = False
                     break
+
+            # Si no hay negativo, buscar positivo
+            if is_positive is None:
+                for pattern in patterns.get("positive", []):
+                    match = re.search(pattern, text_lower, re.IGNORECASE)
+                    if match:
+                        is_positive = True
+                        detected = True
+                        break
+
+        # Caso especial para duración (siempre requiere regex para extraer valores)
+        if symptom == "duracion":
+            dur_match = re.search(r'(\d+)\s*(días?|semanas?|meses?|años?)', text_lower)
+            if dur_match:
+                duration_value = {
+                    "value": int(dur_match.group(1)),
+                    "unit": dur_match.group(2),
+                }
+                detected = True
+                is_positive = True
+            elif is_positive is None:
+                # Buscar palabras clave generales de tiempo si no hay números
+                time_keywords = [r'hace\s+mucho', r'tiempo', r'siempre', r'reciente', r'nuevo']
+                for kw in time_keywords:
+                    if re.search(kw, text_lower):
+                        is_positive = True
+                        detected = True
+                        break
 
         results[symptom] = {
             "detected": detected,
@@ -149,6 +167,12 @@ def extract_symptoms(text):
         }
 
     return results
+
+
+def train_symptom_extractor():
+    """Entrena (o re-entrena) el modelo de síntomas."""
+    classifier.train()
+    return True
 
 
 def symptoms_to_vector(symptoms):

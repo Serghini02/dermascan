@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Symptom Evaluation Dashboard | DermaScan</title>
+    <title>Extractor de Síntomas | Entrenamiento y Evaluación | DermaScan</title>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;700&display=swap" rel="stylesheet">
     <style>
@@ -16,6 +16,8 @@
             --success: #10b981;
             --text-main: #f8fafc;
             --text-dim: #94a3b8;
+            --glass: rgba(255, 255, 255, 0.03);
+            --border: rgba(255, 255, 255, 0.1);
         }
 
         * {
@@ -27,9 +29,13 @@
 
         body {
             background-color: var(--bg-body);
+            background-image: 
+                radial-gradient(at 0% 0%, rgba(56, 189, 248, 0.15) 0px, transparent 50%),
+                radial-gradient(at 100% 100%, rgba(129, 140, 248, 0.15) 0px, transparent 50%);
             color: var(--text-main);
             padding: 2rem;
             line-height: 1.6;
+            min-height: 100vh;
         }
 
         .container {
@@ -51,21 +57,56 @@
             margin-bottom: 0.5rem;
         }
 
-        .badge-global {
-            display: inline-block;
-            padding: 0.5rem 1.5rem;
-            background: rgba(16, 185, 129, 0.1);
-            border: 1px solid var(--success);
-            color: var(--success);
-            border-radius: 99px;
+        .actions {
+            display: flex;
+            justify-content: center;
+            gap: 1rem;
+            margin-bottom: 2rem;
+        }
+
+        button {
+            padding: 0.75rem 1.5rem;
+            border-radius: 0.75rem;
+            border: none;
             font-weight: 600;
-            font-size: 0.9rem;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .btn-train {
+            background: linear-gradient(135deg, var(--secondary), var(--primary));
+            color: white;
+            box-shadow: 0 4px 15px rgba(129, 140, 248, 0.4);
+        }
+
+        .btn-train:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(129, 140, 248, 0.6);
+        }
+
+        .btn-eval {
+            background: var(--glass);
+            border: 1px solid var(--border);
+            color: white;
+        }
+
+        .btn-eval:hover {
+            background: rgba(255, 255, 255, 0.1);
+        }
+
+        button:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            transform: none !important;
         }
 
         /* Stats Grid */
         .stats-grid {
             display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
             gap: 1.5rem;
             margin-bottom: 3rem;
         }
@@ -73,19 +114,15 @@
         .stat-card {
             background: var(--bg-card);
             padding: 1.5rem;
-            border-radius: 1rem;
-            border: 1px solid rgba(255, 255, 255, 0.05);
+            border-radius: 1.25rem;
+            border: 1px solid var(--border);
             box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.3);
             text-align: center;
-            transition: transform 0.3s ease;
-        }
-
-        .stat-card:hover {
-            transform: translateY(-5px);
+            backdrop-filter: blur(10px);
         }
 
         .stat-value {
-            font-size: 2.5rem;
+            font-size: 2.2rem;
             font-weight: 700;
             color: var(--primary);
             display: block;
@@ -96,6 +133,7 @@
             text-transform: uppercase;
             letter-spacing: 0.05em;
             font-size: 0.8rem;
+            margin-top: 0.25rem;
         }
 
         /* Charts Section */
@@ -113,8 +151,8 @@
         .chart-card {
             background: var(--bg-card);
             padding: 1.5rem;
-            border-radius: 1rem;
-            border: 1px solid rgba(255, 255, 255, 0.05);
+            border-radius: 1.25rem;
+            border: 1px solid var(--border);
         }
 
         .chart-card h3 {
@@ -129,12 +167,15 @@
         .case-list-card {
             background: var(--bg-card);
             padding: 2rem;
-            border-radius: 1rem;
+            border-radius: 1.25rem;
+            border: 1px solid var(--border);
             margin-bottom: 2rem;
         }
 
         .table-responsive {
             overflow-x: auto;
+            max-height: 500px;
+            overflow-y: auto;
         }
 
         table {
@@ -146,55 +187,82 @@
         th {
             text-align: left;
             padding: 1rem;
-            border-bottom: 2px solid rgba(255, 255, 255, 0.05);
+            border-bottom: 2px solid var(--border);
             color: var(--text-dim);
-            font-weight: 600;
+            position: sticky;
+            top: 0;
+            background: var(--bg-card);
         }
 
         td {
             padding: 1rem;
-            border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+            border-bottom: 1px solid var(--border);
         }
 
         .tag {
-            padding: 0.2rem 0.6rem;
-            border-radius: 4px;
-            font-size: 0.75rem;
-            font-weight: 600;
+            padding: 0.25rem 0.75rem;
+            border-radius: 99px;
+            font-size: 0.7rem;
+            font-weight: 700;
             text-transform: uppercase;
         }
 
-        .tag-success { background: rgba(16, 185, 129, 0.2); color: #10b981; }
-        .tag-danger { background: rgba(244, 63, 94, 0.2); color: #f43f5e; }
+        .tag-success { background: rgba(16, 185, 129, 0.15); color: #10b981; border: 1px solid rgba(16, 185, 129, 0.3); }
+        .tag-danger { background: rgba(244, 63, 94, 0.15); color: #f43f5e; border: 1px solid rgba(244, 63, 94, 0.3); }
 
+        .loader {
+            display: none;
+            width: 20px;
+            height: 20px;
+            border: 3px solid rgba(255,255,255,0.3);
+            border-radius: 50%;
+            border-top-color: #fff;
+            animation: spin 1s ease-in-out infinite;
+        }
+
+        @keyframes spin { to { transform: rotate(360deg); } }
+
+        .loading .loader { display: block; }
+        .loading .btn-text { display: none; }
     </style>
 </head>
 <body>
 
 <div class="container">
     <header>
-        <h1>Dermascan NLP: Evaluation Dashboard</h1>
-        <div class="badge-global">Estado Final: 100% de Acierto en Validación</div>
+        <h1>Extractor de Síntomas Inteligente</h1>
+        <p style="color: var(--text-dim)">Entrenamiento dinámico en la App y Evaluación del Modelo ML</p>
     </header>
 
-    <div class="stats-grid">
+    <div class="actions">
+        <button id="btn-train" class="btn-train">
+            <div class="loader"></div>
+            <span class="btn-text">⚙️ Entrenar Modelo</span>
+        </button>
+        <button id="btn-eval" class="btn-eval">
+            <div class="loader"></div>
+            <span class="btn-text">📊 Ejecutar Evaluación</span>
+        </button>
+    </div>
+
+    <div id="stats" class="stats-grid">
         <div class="stat-card">
-            <span class="stat-value">36</span>
-            <span class="stat-label">Frases de Pacientes</span>
+            <span id="stat-cases" class="stat-value">-</span>
+            <span class="stat-label">Frases Evaluadas</span>
         </div>
         <div class="stat-card">
-            <span class="stat-value">1.000</span>
+            <span id="stat-accuracy" class="stat-value">-</span>
+            <span class="stat-label">Exactitud Global</span>
+        </div>
+        <div class="stat-card">
+            <span id="stat-f1" class="stat-value">-</span>
             <span class="stat-label">Macro F1 Score</span>
-        </div>
-        <div class="stat-card">
-            <span class="stat-value" style="color: var(--success)">44/44</span>
-            <span class="stat-label">Decisiones Correctas</span>
         </div>
     </div>
 
     <div class="charts-container">
         <div class="chart-card">
-            <h3>Métricas por Síntoma</h3>
+            <h3>Rendimiento por Síntoma</h3>
             <canvas id="barChart" height="200"></canvas>
         </div>
         <div class="chart-card">
@@ -204,19 +272,20 @@
     </div>
 
     <div class="case-list-card">
-        <h3>Explorador de Resultados (Dataset de Prueba)</h3>
+        <h3>Explorador de Falsos Positivos / Negativos</h3>
         <div class="table-responsive">
             <table id="results-table">
                 <thead>
                     <tr>
                         <th>ID</th>
-                        <th>Síntoma</th>
-                        <th>Texto del Usuario</th>
+                        <th>Pregunta</th>
+                        <th>Texto del Paciente</th>
                         <th>Resultado</th>
+                        <th>Detalle</th>
                     </tr>
                 </thead>
                 <tbody id="table-body">
-                    <!-- Data -->
+                    <!-- Los datos se cargarán aquí -->
                 </tbody>
             </table>
         </div>
@@ -224,72 +293,152 @@
 </div>
 
 <script>
-    const symptoms = ["Dolor", "Picor", "Tamaño", "Sangrado", "Color", "Duración"];
-    const colors = ['#38bdf8', '#818cf8', '#fb7185', '#34d399', '#fbbf24', '#a78bfa'];
+    let barChart, radarChart;
 
-    new Chart(document.getElementById('barChart'), {
-        type: 'bar',
-        data: {
-            labels: symptoms,
-            datasets: [
-                { label: 'Precision', data: [1, 1, 1, 1, 1, 1], backgroundColor: '#38bdf8' },
-                { label: 'Recall', data: [1, 1, 1, 1, 1, 1], backgroundColor: '#818cf8' }
-            ]
-        },
-        options: {
-            plugins: { legend: { labels: { color: '#94a3b8' } } },
-            scales: {
-                y: { beginAtZero: true, max: 1.2, grid: { color: 'rgba(255,255,255,0.05)' }, ticks: { color: '#94a3b8' } },
-                x: { grid: { display: false }, ticks: { color: '#94a3b8' } }
-            }
+    async function trainModel() {
+        const btn = document.getElementById('btn-train');
+        btn.classList.add('loading');
+        btn.disabled = true;
+
+        try {
+            const res = await fetch('/api/nlp/train', { method: 'POST' });
+            const data = await res.json();
+            alert(data.message || "Entrenamiento completado");
+            // Después de entrenar, evaluamos automáticamente para ver resultados
+            runEvaluation();
+        } catch (e) {
+            alert("Error al entrenar: " + e);
+        } finally {
+            btn.classList.remove('loading');
+            btn.disabled = false;
         }
-    });
+    }
 
-    new Chart(document.getElementById('radarChart'), {
-        type: 'radar',
-        data: {
-            labels: symptoms,
-            datasets: [{
-                label: 'F1 Score',
-                data: [1, 1, 1, 1, 1, 1],
-                backgroundColor: 'rgba(56, 189, 248, 0.2)',
-                borderColor: '#38bdf8',
-                pointBackgroundColor: '#38bdf8'
-            }]
-        },
-        options: {
-            scales: {
-                r: {
-                    angleLines: { color: 'rgba(255,255,255,0.05)' },
-                    grid: { color: 'rgba(255,255,255,0.05)' },
-                    pointLabels: { color: '#94a3b8' },
-                    ticks: { display: false }
-                }
+    async function runEvaluation() {
+        const btn = document.getElementById('btn-eval');
+        btn.classList.add('loading');
+        btn.disabled = true;
+
+        try {
+            const res = await fetch('/api/evaluation/run', { method: 'POST' });
+            const data = await res.json();
+            updateDashboard(data);
+        } catch (e) {
+            alert("Error al evaluar: " + e);
+        } finally {
+            btn.classList.remove('loading');
+            btn.disabled = false;
+        }
+    }
+
+    function updateDashboard(data) {
+        // Actualizar Stats
+        document.getElementById('stat-cases').innerText = data.total_cases;
+        
+        // Exactitud global (si no viene en el JSON raíz, la calculamos)
+        let total = 0, correct = 0;
+        data.cases.forEach(c => {
+            total += c.evaluated;
+            correct += c.correct;
+        });
+        const acc = (correct / total * 100).toFixed(1);
+        document.getElementById('stat-accuracy').innerText = acc + '%';
+        document.getElementById('stat-f1').innerText = data.metrics.__macro__.f1.toFixed(3);
+
+        // Preparar datos para gráficas
+        const symptoms = Object.keys(data.metrics).filter(k => k !== '__macro__');
+        const labels = symptoms.map(s => s.charAt(0).toUpperCase() + s.slice(1));
+        const precision = symptoms.map(s => data.metrics[s].precision);
+        const recall = symptoms.map(s => data.metrics[s].recall);
+        const f1 = symptoms.map(s => data.metrics[s].f1);
+
+        // Actualizar Bar Chart
+        if (barChart) barChart.destroy();
+        barChart = new Chart(document.getElementById('barChart'), {
+            type: 'bar',
+            data: {
+                labels: labels,
+                datasets: [
+                    { label: 'Precisión', data: precision, backgroundColor: '#38bdf8', borderRadius: 5 },
+                    { label: 'Recall', data: recall, backgroundColor: '#818cf8', borderRadius: 5 }
+                ]
             },
-            plugins: { legend: { display: false } }
+            options: {
+                responsive: true,
+                plugins: { legend: { labels: { color: '#94a3b8', font: { family: 'Outfit' } } } },
+                scales: {
+                    y: { beginAtZero: true, max: 1.0, grid: { color: 'rgba(255,255,255,0.05)' }, ticks: { color: '#94a3b8' } },
+                    x: { grid: { display: false }, ticks: { color: '#94a3b8' } }
+                }
+            }
+        });
+
+        // Actualizar Radar Chart
+        if (radarChart) radarChart.destroy();
+        radarChart = new Chart(document.getElementById('radarChart'), {
+            type: 'radar',
+            data: {
+                labels: labels,
+                datasets: [{
+                    label: 'F1 Score',
+                    data: f1,
+                    backgroundColor: 'rgba(56, 189, 248, 0.2)',
+                    borderColor: '#38bdf8',
+                    borderWidth: 2,
+                    pointBackgroundColor: '#38bdf8'
+                }]
+            },
+            options: {
+                scales: {
+                    r: {
+                        angleLines: { color: 'rgba(255,255,255,0.1)' },
+                        grid: { color: 'rgba(255,255,255,0.1)' },
+                        pointLabels: { color: '#94a3b8', font: { size: 12, family: 'Outfit' } },
+                        ticks: { display: false, stepSize: 0.2 },
+                        min: 0, max: 1
+                    }
+                },
+                plugins: { legend: { display: false } }
+            }
+        });
+
+        // Actualizar Tabla
+        const tbody = document.getElementById('table-body');
+        tbody.innerHTML = '';
+        data.cases.forEach(c => {
+            const isOk = c.case_accuracy === 1.0;
+            const row = `
+                <tr>
+                    <td style="font-weight:700">${c.id}</td>
+                    <td style="color:var(--secondary)">${c.question.toUpperCase()}</td>
+                    <td style="font-style:italic; color: #cbd5e1">"${c.text}"</td>
+                    <td><span class="tag ${isOk ? 'tag-success' : 'tag-danger'}">${isOk ? 'CORRECTO' : 'ERROR'}</span></td>
+                    <td style="font-size: 0.8rem; color: var(--text-dim)">
+                        ${Object.keys(c.per_symptom).filter(s => c.per_symptom[s].correct === false).map(s => `${s}: exp ${c.per_symptom[s].expected} got ${c.per_symptom[s].got}`).join(', ') || '-'}
+                    </td>
+                </tr>
+            `;
+            tbody.innerHTML += row;
+        });
+    }
+
+    // Carga inicial
+    async function init() {
+        try {
+            const res = await fetch('/api/evaluation/results');
+            if (res.ok) {
+                const data = await res.json();
+                updateDashboard(data);
+            }
+        } catch (e) {
+            console.log("No hay resultados previos.");
         }
-    });
+    }
 
-    const mockCases = [
-        {id: "D-01", sym: "DOLOR", text: "Sí, me duele bastante cuando lo toco."},
-        {id: "P-01", sym: "PICOR", text: "Sí, me pica mucho, especialmente por la tarde."},
-        {id: "T-01", sym: "TAMAÑO", text: "Sí, ha crecido bastante en los últimos meses."},
-        {id: "S-01", sym: "SANGRADO", text: "Sí, una vez sangró cuando me lo rasqué."},
-        {id: "C-01", sym: "COLOR", text: "Sí, se ha oscurecido bastante, antes era más claro."},
-        {id: "MX-02", sym: "GENERAL", text: "Duele un poco y sangró el otro día."}
-    ];
+    document.getElementById('btn-train').addEventListener('click', trainModel);
+    document.getElementById('btn-eval').addEventListener('click', runEvaluation);
 
-    const tbody = document.getElementById('table-body');
-    mockCases.forEach(c => {
-        tbody.innerHTML += `
-            <tr>
-                <td style="font-weight:700">${c.id}</td>
-                <td style="color:var(--secondary)">${c.sym}</td>
-                <td style="font-style:italic">"${c.text}"</td>
-                <td><span class="tag tag-success">ACIERTO</span></td>
-            </tr>
-        `;
-    });
+    init();
 </script>
 </body>
 </html>

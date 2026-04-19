@@ -27,7 +27,9 @@ from database.db_manager import DatabaseManager
 from vision.cnn_model import SkinClassifier
 from vision.skin_analyzer import analyze_mole
 from nlp.tokenizer import get_tokenizer
-from nlp.symptom_extractor import extract_symptoms, symptoms_to_vector, get_symptom_summary
+from nlp.symptom_extractor import (
+    extract_symptoms, symptoms_to_vector, get_symptom_summary, train_symptom_extractor, classifier as symptom_classifier
+)
 from nlp.regex_corrector import correct_text
 from rl.dqn_agent import DQNAgent
 from rl.train import train_agent, evaluate_agent
@@ -295,6 +297,16 @@ def nlp_correct():
     return jsonify(result)
 
 
+@app.route('/api/nlp/train', methods=['POST'])
+def nlp_train():
+    """Entrena el extractor de síntomas directamente en la app."""
+    try:
+        train_symptom_extractor()
+        return jsonify({"status": "success", "message": "Extractor de síntomas entrenado correctamente."})
+    except Exception as e:
+        return jsonify({"status": "error", "message": str(e)}), 500
+
+
 # =============================================================================
 # RUTAS — DRL
 # =============================================================================
@@ -492,6 +504,13 @@ if __name__ == '__main__':
     print(f"  URL: http://localhost:{FLASK_PORT}")
     print(f"  HAM10000: {'✅ Cargado' if ham10000_path else '❌ No disponible'}")
     print(f"  CNN: {'✅ Cargada' if classifier.loaded else '❌ Modelo no encontrado'}")
+    # Inicialización del Extractor de Síntomas (ML)
+    if not symptom_classifier.is_trained:
+        print("[App] Entrenando extractor de síntomas por primera vez...")
+        train_symptom_extractor()
+    else:
+        print("[App] Extractor de síntomas (ML) cargado y listo.")
+
     print(f"{'='*60}\n")
 
     socketio.run(app, host=FLASK_HOST, port=FLASK_PORT,
