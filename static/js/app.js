@@ -16,6 +16,7 @@ function switchTab(name) {
     document.querySelectorAll('.tab-content').forEach(c => c.classList.toggle('active', c.id === `tab-${name}`));
     if (name === 'rl') loadAgentStatus();
     if (name === 'history') loadHistory();
+    if (name === 'evaluation') loadEvaluationSection();
 }
 
 // =============================================================================
@@ -716,30 +717,180 @@ async function loadAgentStatus() {
 }
 
 // =============================================================================
-// HISTORY
+// HISTORY — Historial con fotos y borrado
 // =============================================================================
 async function loadHistory() {
+    const list = document.getElementById('historyList');
+    list.innerHTML = '<div class="empty-state"><span class="spinner"></span><p>Cargando historial...</p></div>';
     try {
-        const data = await (await fetch('/api/history')).json();
-        const list = document.getElementById('historyList');
-        if (!data.length) { list.innerHTML = '<div class="empty-state"><p>Sin consultas</p></div>'; return; }
-        list.innerHTML = data.map(c => {
+        const data = await (await fetch('/api/history?limit=50')).json();
+        if (!data.length) {
+            list.innerHTML = '<div class="empty-state"><span class="empty-icon">📋</span><p>Aún no hay consultas registradas</p></div>';
+            return;
+        }
+
+        const filterBar = `
+            <div style="display:flex;gap:8px;margin-bottom:16px;flex-wrap:wrap;align-items:center">
+                <span style="font-size:0.8rem;font-weight:600;color:var(--text-secondary)">Filtrar:</span>
+                <button class="btn btn-secondary" style="padding:4px 12px;font-size:0.78rem" onclick="filterHistory('all')">Todos</button>
+                <button class="btn btn-secondary" style="padding:4px 12px;font-size:0.78rem;border-color:var(--green);color:var(--green)" onclick="filterHistory('benigno')">🟢 Bajo</button>
+                <button class="btn btn-secondary" style="padding:4px 12px;font-size:0.78rem;border-color:var(--orange);color:var(--orange)" onclick="filterHistory('pre-maligno')">🟠 Medio</button>
+                <button class="btn btn-secondary" style="padding:4px 12px;font-size:0.78rem;border-color:var(--red);color:var(--red)" onclick="filterHistory('maligno')">🔴 Alto</button>
+                <button class="btn btn-secondary" style="padding:4px 12px;font-size:0.78rem;margin-left:auto" onclick="exportHistoryCSV()" title="Exportar historial">📊 Exportar CSV</button>
+            </div>`;
+
+        const cards = data.map(c => {
             const riskClass = c.risk_level === 'maligno' ? 'alto' : c.risk_level === 'pre-maligno' ? 'medio' : 'bajo';
-            return `<div class="history-item">
-                <div>
-                    <span class="history-diagnosis">${c.cnn_diagnosis || '—'}</span>
-                    <span class="risk-badge ${riskClass}">${riskClass}</span>
+            const dateStr  = c.timestamp ? new Date(c.timestamp).toLocaleString('es-ES', {day:'2-digit',month:'short',year:'numeric',hour:'2-digit',minute:'2-digit'}) : '—';
+            const imgHtml  = c.image_data
+                ? `<img src="data:image/jpeg;base64,${c.image_data}" alt="Lunar" class="history-thumb" onclick="openImageModal('${c.image_data}')" title="Ampliar imagen">`
+                : `<div class="history-thumb-placeholder">🔬</div>`;
+
+            let sympHtml = '';
+            if (c.symptoms) {
+                const syms = typeof c.symptoms === 'string' ? JSON.parse(c.symptoms) : c.symptoms;
+                const icons = {dolor:'🔴',picor:'🟠','tamaño':'📏',sangrado:'💧',color:'🎨',duracion:'📅'};
+                sympHtml = '<div style="display:flex;flex-wrap:wrap;gap:4px;margin-top:8px">' +
+                    Object.entries(syms).map(([k,v]) => {
+                        if (!v || v.positive === null || v.positive === undefined) return '';
+                        const val = v.positive === true ? '✅' : v.positive === false ? '❌' : '❓';
+                        return `<span style="font-size:0.68rem;padding:2px 6px;background:#f1f5f9;border-radius:6px;">${icons[k]||''} ${k}: ${val}</span>`;
+                    }).join('') + '</div>';
+            }
+
+            return `
+            <div class="history-card" data-risk="${c.risk_level || 'benigno'}" data-id="${c.id}">
+                ${imgHtml}
+                <div class="history-card-body">
+                    <div style="display:flex;justify-content:space-between;align-items:flex-start">
+                        <div>
+                            <div class="history-diagnosis">${esc(c.cnn_diagnosis || '—')}</div>
+                            <div style="font-size:0.72rem;color:var(--text-muted);margin-top:2px">${dateStr}</div>
+                        </div>
+                        <div style="display:flex;gap:6px;align-items:center">
+                            <span class="risk-badge ${riskClass}">${riskClass}</span>
+                            <button class="btn-delete-history" onclick="deleteConsultation(${c.id}, this)" title="Eliminar consulta">🗑️</button>
+                        </div>
+                    </div>
+                    <div style="font-size:0.78rem;color:var(--text-secondary);margin-top:6px;line-height:1.4">${c.final_recommendation ? esc(c.final_recommendation.slice(0,110))+'…' : ''}</div>
+                    ${sympHtml}
                 </div>
-                <span class="history-date">${c.timestamp?.split('T')[0] || '—'}</span>
             </div>`;
         }).join('');
-    } catch (e) { document.getElementById('historyList').innerHTML = `<p>${e.message}</p>`; }
+
+        list.innerHTML = filterBar + `<div id="historyCards">${cards}</div>`;
+    } catch (e) {
+        list.innerHTML = `<div class="empty-state"><p>Error: ${esc(e.message)}</p></div>`;
+    }
 }
+
+function filterHistory(risk) {
+    document.querySelectorAll('.history-card').forEach(card => {
+        card.style.display = (risk === 'all' || card.dataset.risk === risk) ? 'flex' : 'none';
+    });
+}
+
+async function deleteConsultation(id, btnEl) {
+    if (!confirm('¿Eliminar esta consulta del historial?')) return;
+    const card = btnEl.closest('.history-card');
+    card.style.opacity = '0.4';
+    card.style.pointerEvents = 'none';
+    try {
+        const res = await fetch(`/api/history/${id}`, { method: 'DELETE' });
+        if (res.ok) {
+            card.style.transition = 'all 0.35s ease';
+            card.style.transform = 'translateX(60px)';
+            card.style.opacity = '0';
+            setTimeout(() => card.remove(), 380);
+        } else {
+            card.style.opacity = '1';
+            card.style.pointerEvents = 'auto';
+            alert('Error al eliminar la consulta.');
+        }
+    } catch (e) {
+        card.style.opacity = '1';
+        card.style.pointerEvents = 'auto';
+    }
+}
+
+function openImageModal(b64) {
+    const existing = document.getElementById('imageModal');
+    if (existing) existing.remove();
+    const modal = document.createElement('div');
+    modal.id = 'imageModal';
+    modal.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.88);display:flex;align-items:center;justify-content:center;z-index:9999;cursor:zoom-out;animation:fadeIn 0.2s ease';
+    modal.innerHTML = `<img src="data:image/jpeg;base64,${b64}" style="max-width:92vw;max-height:92vh;border-radius:12px;box-shadow:0 24px 60px rgba(0,0,0,0.6)">`;
+    modal.onclick = () => modal.remove();
+    document.body.appendChild(modal);
+}
+
+function exportHistoryCSV() {
+    const cards = document.querySelectorAll('.history-card');
+    if (!cards.length) { alert('No hay datos para exportar.'); return; }
+    let csv = 'ID,Diagnóstico,Riesgo,Fecha\n';
+    cards.forEach(c => {
+        const id   = c.dataset.id || '';
+        const diag = c.querySelector('.history-diagnosis')?.textContent?.trim() || '';
+        const risk = c.dataset.risk || '';
+        const date = c.querySelector('[style*="text-muted"]')?.textContent?.trim() || '';
+        csv += `${id},"${diag}","${risk}","${date}"\n`;
+    });
+    const a = document.createElement('a');
+    a.href = 'data:text/csv;charset=utf-8,\uFEFF' + encodeURIComponent(csv);
+    a.download = `dermascan_historial_${new Date().toISOString().split('T')[0]}.csv`;
+    a.click();
+}
+
 
 // =============================================================================
 // EVALUATION NLP DASHBOARD
 // =============================================================================
 let evalBarChart = null, evalRadarChart = null;
+
+async function loadEvaluationSection() {
+    // Cargar estado real del modelo desde la API
+    try {
+        const st = await (await fetch('/api/nlp/status')).json();
+        const badge = document.getElementById('nlpStatusBadge');
+        if (badge) {
+            if (st.is_trained) {
+                badge.textContent = `✅ MODELO ENTRENADO · ${st.num_symptoms} síntomas`;
+                badge.style.cssText = 'background:var(--green-light);color:var(--green);border:1px solid rgba(22,163,74,0.3);padding:4px 12px;border-radius:12px;font-size:0.75rem;font-weight:700';
+            } else {
+                badge.textContent = '⚠️ Modelo no entrenado — Usa el botón de arriba';
+                badge.style.cssText = 'background:var(--orange-light);color:var(--orange);border:1px solid rgba(234,88,12,0.3);padding:4px 12px;border-radius:12px;font-size:0.75rem;font-weight:700';
+            }
+        }
+    } catch(e) { console.log('Estado NLP:', e.message); }
+
+    // Cargar últimos resultados de evaluación si existen
+    try {
+        const res = await fetch('/api/evaluation/results');
+        if (res.ok) displayEvalData(await res.json());
+    } catch(e) { /* silencioso */ }
+}
+
+async function trainNlpModel() {
+    const btn = document.getElementById('btnTrainModel');
+    const orig = btn.innerHTML;
+    btn.disabled = true;
+    btn.innerHTML = '<span class="spinner-small"></span> Entrenando modelo...';
+    try {
+        const res = await fetch('/api/nlp/train', { method: 'POST' });
+        const data = await res.json();
+        if (data.status === 'success') {
+            await loadEvaluationSection();
+            await triggerEvaluation();
+        } else {
+            alert('Error: ' + data.message);
+        }
+    } catch(e) {
+        alert('Error de conexión al entrenar: ' + e.message);
+    } finally {
+        btn.disabled = false;
+        btn.innerHTML = orig;
+    }
+}
 
 async function triggerEvaluation() {
     const btn = document.getElementById('btnRunEval');
@@ -873,8 +1024,5 @@ document.addEventListener('DOMContentLoaded', () => {
     initSpeechRecognition();
     initCharts();
     loadAgentStatus();
-    loadEvaluation();
+    // El tab de evaluación se carga en loadEvaluationSection() al hacer clic
 });
-
-
-

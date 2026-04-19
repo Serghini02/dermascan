@@ -60,6 +60,7 @@ current_session = {
     "symptoms": {},
     "questions_asked": [],
     "abcde_scores": None,
+    "image_data": None,
 }
 
 # Detectar y cargar HAM10000
@@ -167,6 +168,7 @@ def scan_image():
         current_session["abcde_scores"] = abcde
         current_session["symptoms"] = {}
         current_session["questions_asked"] = []
+        current_session["image_data"] = image_b64  # Guardar imagen para historial
 
         # Simular tiempo de procesamiento para el "consenso" de las 5 pasadas
         import time
@@ -175,6 +177,9 @@ def scan_image():
         # 3. Consultar al DRL qué pregunta hacer primero
         state = _build_state()
         drl_prediction = dqn_agent.predict(state)
+        
+        # Aplicar reglas de flujo para forzar preguntas de síntomas
+        drl_prediction = apply_flow_rules(drl_prediction, [])
 
         return jsonify({
             "cnn": cnn_result,
@@ -225,37 +230,8 @@ def process_voice():
     state = _build_state()
     drl_pred = dqn_agent.predict(state)
 
-    questions_done = len(current_session["questions_asked"])
-    all_question_ids = [SYMPTOM_QUESTIONS[i]["id"] for i in range(6)]
-    asked_ids = set(current_session["questions_asked"])
-
-    # ── Regla 1: Obligar a pasar por TODAS las preguntas (6) para mayor precisión ──
-    MIN_QUESTIONS = 6
-    if drl_pred["action"] in (6, 7) and questions_done < MIN_QUESTIONS:
-        # Elegir la siguiente pregunta no respondida
-        next_action = next(
-            (i for i in range(6) if SYMPTOM_QUESTIONS[i]["id"] not in asked_ids),
-            6  # si todas respondidas, diagnosticar
-        )
-        drl_pred["action"] = next_action
-        drl_pred["action_name"] = ACTION_NAMES.get(next_action, "")
-
-    # ── Regla 2: No repetir preguntas ya hechas ──
-    if drl_pred["action"] <= 5:
-        chosen_id = SYMPTOM_QUESTIONS[drl_pred["action"]]["id"]
-        if chosen_id in asked_ids:
-            # Elegir la siguiente sin responder
-            next_action = next(
-                (i for i in range(6) if SYMPTOM_QUESTIONS[i]["id"] not in asked_ids),
-                6  # si todas respondidas, diagnosticar
-            )
-            drl_pred["action"] = next_action
-            drl_pred["action_name"] = ACTION_NAMES.get(next_action, "")
-
-    # ── Regla 3: Si ya se hicieron todas las preguntas, diagnosticar ──
-    if drl_pred["action"] == 7 and questions_done >= 6:
-        drl_pred["action"] = 6
-        drl_pred["action_name"] = ACTION_NAMES[6]
+    # Aplicar reglas de flujo (Obligar preguntas, evitar repetidas)
+    drl_pred = apply_flow_rules(drl_pred, current_session["questions_asked"])
 
     # ¿Es diagnóstico final?
     is_final = drl_pred["action"] == 6
@@ -305,6 +281,16 @@ def nlp_train():
         return jsonify({"status": "success", "message": "Extractor de síntomas entrenado correctamente."})
     except Exception as e:
         return jsonify({"status": "error", "message": str(e)}), 500
+
+
+@app.route('/api/nlp/status', methods=['GET'])
+def nlp_status():
+    """Estado del extractor de síntomas ML."""
+    return jsonify({
+        "is_trained": symptom_classifier.is_trained,
+        "model_exists": os.path.exists(symptom_classifier.model_path),
+        "num_symptoms": len(symptom_classifier.symptoms) if symptom_classifier.is_trained else 0,
+    })
 
 
 # =============================================================================
@@ -376,6 +362,15 @@ def get_history():
     return jsonify(db.get_consultations(limit=limit))
 
 
+@app.route('/api/history/<int:consultation_id>', methods=['DELETE'])
+def delete_history(consultation_id):
+    """Elimina una consulta del historial."""
+    success = db.delete_consultation(consultation_id)
+    if success:
+        return jsonify({"status": "deleted", "id": consultation_id})
+    return jsonify({"error": "Consulta no encontrada"}), 404
+
+
 @app.route('/api/dataset/stats', methods=['GET'])
 def dataset_stats():
     return jsonify(db.get_ham10000_stats())
@@ -414,6 +409,41 @@ def run_evaluation():
 # HELPERS
 # =============================================================================
 
+def apply_flow_rules(drl_pred, asked_ids_list):
+    """
+    Asegura que el flujo de preguntas sea coherente.
+    - Obliga a preguntar un mínimo de síntomas.
+    - Evita repeticiones.
+    """
+    asked_ids = set(asked_ids_list)
+    questions_done = len(asked_ids)
+    MIN_QUESTIONS = 6 # Forzar valoración completa de los 6 síntomas principales
+
+    curr_action = drl_pred["action"]
+    
+    # Regla 1: Si intenta diagnosticar pero faltan preguntas, forzar pregunta
+    if curr_action in (6, 7) and questions_done < MIN_QUESTIONS:
+        next_action_idx = next(
+            (i for i in range(6) if SYMPTOM_QUESTIONS[i]["id"] not in asked_ids),
+            6
+        )
+        drl_pred["action"] = next_action_idx
+        drl_pred["action_name"] = ACTION_NAMES.get(next_action_idx, "")
+    
+    # Regla 2: Evitar repetir preguntas
+    elif curr_action <= 5:
+        chosen_id = SYMPTOM_QUESTIONS[curr_action]["id"]
+        if chosen_id in asked_ids:
+            next_action_idx = next(
+                (i for i in range(6) if SYMPTOM_QUESTIONS[i]["id"] not in asked_ids),
+                6
+            )
+            drl_pred["action"] = next_action_idx
+            drl_pred["action_name"] = ACTION_NAMES.get(next_action_idx, "")
+
+    return drl_pred
+
+
 def _build_state():
     """Construye el vector de estado para el DRL."""
     cnn_probs = [0.0] * 7
@@ -447,9 +477,10 @@ def _finalize_diagnosis():
     # Generar diagnóstico refinado mediante el Sistema Experto (Reglas)
     expert_result = expert_system.apply_rules(cnn, abcde, symptoms)
 
-    # Guardar en BD
+    # Guardar en BD (incluyendo la imagen de la sesión)
     db.add_consultation(
         cnn_diagnosis=cnn.get("diagnosis_code"),
+        image_data=current_session.get("image_data"),
         cnn_confidence=cnn.get("confidence", 0),
         cnn_probabilities=cnn.get("probabilities"),
         symptoms=symptoms,

@@ -28,6 +28,7 @@ class DatabaseManager:
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
                 timestamp TEXT NOT NULL,
                 image_path TEXT,
+                image_data TEXT,
                 cnn_diagnosis TEXT,
                 cnn_confidence REAL,
                 cnn_probabilities TEXT,
@@ -52,10 +53,16 @@ class DatabaseManager:
             )
         """)
 
+        # Migración: añadir image_data si no existe (bases de datos antiguas)
+        try:
+            c.execute("ALTER TABLE consultations ADD COLUMN image_data TEXT")
+        except Exception:
+            pass  # La columna ya existe
+
         conn.commit()
         conn.close()
 
-    def add_consultation(self, image_path=None, cnn_diagnosis=None,
+    def add_consultation(self, image_path=None, image_data=None, cnn_diagnosis=None,
                          cnn_confidence=0.0, cnn_probabilities=None,
                          symptoms=None, abcde_scores=None,
                          drl_diagnosis=None, risk_level=None,
@@ -64,12 +71,12 @@ class DatabaseManager:
         c = conn.cursor()
         c.execute("""
             INSERT INTO consultations
-            (timestamp, image_path, cnn_diagnosis, cnn_confidence,
+            (timestamp, image_path, image_data, cnn_diagnosis, cnn_confidence,
              cnn_probabilities, symptoms, abcde_scores,
              drl_diagnosis, risk_level, questions_asked, final_recommendation)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         """, (
-            datetime.now().isoformat(), image_path, cnn_diagnosis,
+            datetime.now().isoformat(), image_path, image_data, cnn_diagnosis,
             cnn_confidence,
             json.dumps(cnn_probabilities) if cnn_probabilities else None,
             json.dumps(symptoms) if symptoms else None,
@@ -80,6 +87,16 @@ class DatabaseManager:
         cid = c.lastrowid
         conn.close()
         return cid
+
+    def delete_consultation(self, consultation_id):
+        """Elimina una consulta del historial por su ID."""
+        conn = self._get_conn()
+        c = conn.cursor()
+        c.execute("DELETE FROM consultations WHERE id = ?", (consultation_id,))
+        affected = c.rowcount
+        conn.commit()
+        conn.close()
+        return affected > 0
 
     def get_consultations(self, limit=50):
         conn = self._get_conn()
