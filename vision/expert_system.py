@@ -19,12 +19,17 @@ class MedicalExpertSystem:
         rules_triggered = []
         refined_risk = cnn_result.get("risk_level", "benigno")
         
-        # 1. Regla de Consenso (CNN + ABCDE)
-        # Si la CNN dice benigno pero ABCDE dice riesgo alto, subir a pre-maligno
+        # 1. Regla de Consenso (CNN + ABCDE) - Refinada
+        # Si la CNN está MUY segura (>80%), elevamos el umbral de sospecha del ABCDE
+        cnn_conf = cnn_result.get("confidence", 0.0)
+        dynamic_abcde_threshold = self.ABCDE_HIGH_RISK_THRESHOLD
+        if cnn_conf > 0.8:
+             dynamic_abcde_threshold = 8.5 # Solo subir si el ABCDE es casi crítico
+        
         if (cnn_result.get("risk_level") == "benigno" and 
-            abcde_scores.get("total_score", 0) >= self.ABCDE_HIGH_RISK_THRESHOLD):
+            abcde_scores.get("total_score", 0) >= dynamic_abcde_threshold):
             refined_risk = "pre-maligno"
-            rules_triggered.append("R1: Discrepancia entre IA y morfología visual (ABCDE alto).")
+            rules_triggered.append(f"R1: Discrepancia IA/ABCDE. Riesgo subido por morfología visual (ABCDE {abcde_scores.get('total_score'):.1f}).")
 
         # 2. Regla de Melanoma (Sensibilidad)
         # El melanoma es muy peligroso, lo vigilamos con menor umbral si hay asimetría
@@ -83,12 +88,16 @@ class MedicalExpertSystem:
                     "Debe acudir a un dermatólogo de inmediato para una biopsia. No demore esta consulta.", "alta")
         
         if risk == "pre-maligno":
-            return ("⚡ IMPORTANTE: Se han detectado rasgos atípicos y síntomas que requieren atención. "
-                    "Programe una cita con su especialista para una revisión dermatoscópica profesional.", "media")
+            # Si el riesgo es pre-maligno pero no hay muchos síntomas positivos, suavizamos el mensaje
+            if positive_symptoms < 2 and abcde_score < 4:
+                return ("📋 SEGUIMIENTO PREVENTIVO: Se han detectado algunos rasgos atípicos leves en el análisis. "
+                        "Aunque la probabilidad de riesgo es moderada, se aconseja consultar con un dermatólogo para una revisión de rutina.", "media")
+            return ("⚡ IMPORTANTE: Se han detectado rasgos atípicos y síntomas que requieren atención profesional. "
+                    "Programe una cita con su especialista para una revisión dermatoscópica.", "media")
         
         if abcde_score > 4 or positive_symptoms >= 2:
-            return ("📋 SEGUIMIENTO: Aunque no hay signos de malignidad inmediata, existen rasgos que deben vigilarse. "
-                    "Vuelva a escanear en 30 días y si nota evolución rápida, consulte al médico.", "baja")
+            return ("🔍 OBSERVACIÓN: Aunque no hay signos de malignidad clara, existen rasgos que deben vigilarse. "
+                    "Le recomendamos realizar un nuevo autoexamen en 30 días.", "baja")
         
-        return ("✅ BAJO RIESGO: Los indicadores de consenso muestran una lesión aparentemente benigna. "
-                "Mantenga sus revisiones periódicas y use fotoprotección.", "nula")
+        return ("✅ BAJO RIESGO: El análisis indica una lesión aparentemente benigna (como un lunar común). "
+                "Mantenga sus revisiones periódicas habituales y use fotoprotección.", "nula")

@@ -123,6 +123,11 @@
                     <button class="btn btn-accent" id="btnSpeak" onclick="speakQuestion()" disabled>
                         🔊 Leer en voz alta
                     </button>
+                    <!-- Respuestas Rápidas -->
+                    <div id="quickAnswers" style="display:none; gap:10px; margin-top:15px; justify-content:center">
+                        <button class="btn btn-success" style="padding:10px 25px; font-weight:700" onclick="sendQuickAnswer('Sí')">SÍ</button>
+                        <button class="btn btn-danger" style="padding:10px 25px; font-weight:700" onclick="sendQuickAnswer('No')">NO</button>
+                    </div>
                 </div>
 
                 <!-- Voice input -->
@@ -298,7 +303,7 @@
         </div>
     </section>
 
-    <script src="/static/js/app.js?v=3.0"></script>
+    <script src="{{ url_for('static', filename='js/app.js') }}?v=11.0"></script>
 </body>
 
 </html>

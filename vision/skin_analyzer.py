@@ -10,42 +10,67 @@ import cv2
 import numpy as np
 
 
-def analyze_mole(image):
+def analyze_mole(image, n_passes=300, callback=None):
     """
     Análisis ABCDE completo de un lunar.
+    Usa un consenso de n_passes pasadas con pequeñas variaciones de color/brillo
+    para obtener una media más robusta y estable.
 
     Args:
         image: numpy array (BGR) de la imagen del lunar (640x640 esperado)
+        n_passes: número de pasadas de consenso (por defecto 500)
 
     Returns:
         dict con puntuaciones ABCDE y nivel de riesgo visual
     """
     h, w = image.shape[:2]
 
-    # Preprocesar - segmentar el lunar centrado
+    # Segmentar el lunar (solo una vez, la máscara es estable)
     mask = _segment_mole_centered(image)
     if mask is None or cv2.countNonZero(mask) < 100:
         return _default_scores("No se detectó lunar en la imagen")
 
-    # Extraer contorno principal
     contours, _ = cv2.findContours(mask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
     if not contours:
         return _default_scores("No se encontraron contornos")
-
     contour = max(contours, key=cv2.contourArea)
 
-    # Calcular cada criterio ABCDE
+    # Scores de forma (A, B, D): estos no dependen del color → calcular una vez
     a_score, a_detail = _asymmetry(contour, mask)
     b_score, b_detail = _border_irregularity(contour)
-    c_score, c_detail = _color_variation(image, mask)
     d_score, d_detail = _diameter(contour, w, h)
-    e_score, e_detail = _evolution_indicators(image, mask)
+
+    # Scores de color (C, E): consenso de n_passes pasadas con jitter
+    c_scores, e_scores = [], []
+    rng = np.random.default_rng(42)
+    for i in range(n_passes):
+        # Pequeña variación de brillo (±5 puntos en escala 0-255)
+        alpha = rng.uniform(0.94, 1.06)   # contraste
+        beta  = rng.integers(-8, 9)       # brillo
+        aug   = np.clip(image.astype(np.float32) * alpha + beta, 0, 255).astype(np.uint8)
+        c, _ = _color_variation(aug, mask)
+        e, _ = _evolution_indicators(aug, mask)
+        c_scores.append(c)
+        e_scores.append(e)
+        
+        if callback and (i + 1) % 15 == 0:
+            # Progreso proporcional (50-100% ya que CNN fue 0-50%)
+            p = int(50 + (i / n_passes) * 50)
+            callback(p)
+            
+        # CEDER CONTROL EN CADA PASADA
+        import time
+        time.sleep(0.001)
+
+    c_score = float(np.mean(c_scores))
+    e_score = float(np.mean(e_scores))
+    c_detail = f"Media {n_passes} pasadas | Último: {c_scores[-1]:.3f}"
+    e_detail = f"Media {n_passes} pasadas | Último: {e_scores[-1]:.3f}"
 
     # Puntuación total (0-10)
     total = (a_score + b_score + c_score + d_score + e_score) / 5 * 10
     total = round(min(total, 10.0), 1)
 
-    # Nivel de riesgo
     if total >= 7:
         risk = "alto"
     elif total >= 4:
@@ -56,9 +81,9 @@ def analyze_mole(image):
     return {
         "asymmetry": {"score": round(a_score, 2), "detail": a_detail},
         "border":    {"score": round(b_score, 2), "detail": b_detail},
-        "color":     {"score": round(c_score, 2), "detail": c_detail},
+        "color":     {"score": round(c_score, 3), "detail": c_detail},
         "diameter":  {"score": round(d_score, 2), "detail": d_detail},
-        "evolution": {"score": round(e_score, 2), "detail": e_detail},
+        "evolution": {"score": round(e_score, 3), "detail": e_detail},
         "total_score": total,
         "risk": risk,
     }
@@ -147,38 +172,47 @@ def _segment_mole_centered(image):
 # =============================================================================
 
 def _asymmetry(contour, mask):
-    """A: Mide la asimetría del lunar comparando mitades horizontal y vertical."""
+    """
+    A: Mide la asimetría del lunar comparando pixel a pixel (XOR) 
+    entre la máscara original y sus versiones volteadas.
+    """
     M = cv2.moments(contour)
     if M["m00"] == 0:
         return 0.0, "No se pudo calcular"
 
-    cx = int(M["m10"] / M["m00"])
-    cy = int(M["m01"] / M["m00"])
+    cx, cy = int(M["m10"] / M["m00"]), int(M["m01"] / M["m00"])
+    
+    # Recortar el lunar centrado en su centroide para evitar errores de alineación
+    x, y, w, h = cv2.boundingRect(contour)
+    dist_x = max(cx - x, x + w - cx)
+    dist_y = max(cy - y, y + h - cy)
+    
+    y1, y2 = max(0, cy - dist_y), min(mask.shape[0], cy + dist_y)
+    x1, x2 = max(0, cx - dist_x), min(mask.shape[1], cx + dist_x)
+    centered_mask = mask[y1:y2, x1:x2]
+    
+    if centered_mask.size == 0:
+        return 0.0, "Error en centrado"
 
-    # Mitades horizontales (izquierda vs derecha)
-    left = mask[:, :cx]
-    right = mask[:, cx:]
-    min_w = min(left.shape[1], right.shape[1])
-    if min_w > 0:
-        la = np.sum(left[:, -min_w:] > 0)
-        ra = np.sum(right[:, :min_w] > 0)
-        h_asym = abs(la - ra) / max(la + ra, 1)
-    else:
-        h_asym = 0
-
-    # Mitades verticales (arriba vs abajo)
-    top = mask[:cy, :]
-    bot = mask[cy:, :]
-    min_h = min(top.shape[0], bot.shape[0])
-    if min_h > 0:
-        ta = np.sum(top[-min_h:, :] > 0)
-        ba = np.sum(bot[:min_h, :] > 0)
-        v_asym = abs(ta - ba) / max(ta + ba, 1)
-    else:
-        v_asym = 0
-
-    score = (h_asym + v_asym) / 2
-    detail = f"H: {h_asym:.0%} | V: {v_asym:.0%}"
+    # Simetría Horizontal
+    h_flip = cv2.flip(centered_mask, 1)
+    if h_flip.shape != centered_mask.shape:
+        h_flip = cv2.resize(h_flip, (centered_mask.shape[1], centered_mask.shape[0]))
+    h_xor = cv2.bitwise_xor(centered_mask, h_flip)
+    h_asym = np.sum(h_xor > 0) / max(np.sum(centered_mask > 0), 1)
+    
+    # Simetría Vertical
+    v_flip = cv2.flip(centered_mask, 0)
+    if v_flip.shape != centered_mask.shape:
+        v_flip = cv2.resize(v_flip, (centered_mask.shape[1], centered_mask.shape[0]))
+    v_xor = cv2.bitwise_xor(centered_mask, v_flip)
+    v_asym = np.sum(v_xor > 0) / max(np.sum(centered_mask > 0), 1)
+    
+    # En melanomas la asimetría de forma es clave. Multiplicamos para subir sensibilidad.
+    asym_val = (h_asym + v_asym) / 2
+    score = min(asym_val * 2.5, 1.0)
+    
+    detail = f"Asim H: {h_asym:.0%} | V: {v_asym:.0%}"
     return float(score), detail
 
 
@@ -187,30 +221,46 @@ def _asymmetry(contour, mask):
 # =============================================================================
 
 def _border_irregularity(contour):
-    """B: Mide la irregularidad del borde mediante circularidad y convexidad."""
+    """
+    B: Mide la irregularidad del borde mediante el Índice de Distancia Radial (RDV)
+    y la Solidez (Convexidad).
+    """
     area = cv2.contourArea(contour)
     perimeter = cv2.arcLength(contour, closed=True)
-
-    if perimeter == 0 or area == 0:
+    if area == 0 or perimeter == 0:
         return 0.0, "No se pudo calcular"
 
-    # Circularidad: 1.0 = círculo perfecto
+    # 1. Circularidad (Compactness): 1.0 = círculo perfecto
     circularity = (4 * np.pi * area) / (perimeter ** 2)
-    circularity = min(circularity, 1.0)
 
-    # Convexidad: cuánto del contorno es convexo
+    # 2. RDV - Radial Distance Variation (Muy sensible a bordes 'serrados')
+    M = cv2.moments(contour)
+    # Evitar división por cero
+    if M["m00"] == 0: return 0.0, "Área cero"
+    cx, cy = M["m10"]/M["m00"], M["m01"]/M["m00"]
+    distances = []
+    for p in contour:
+        d = np.sqrt((p[0][0] - cx)**2 + (p[0][1] - cy)**2)
+        distances.append(d)
+    
+    rdv = np.std(distances) / np.mean(distances) if np.mean(distances) > 0 else 0
+    
+    # 3. Solidez (Indentaciones y muescas)
     hull = cv2.convexHull(contour)
     hull_area = cv2.contourArea(hull)
     solidity = area / hull_area if hull_area > 0 else 1.0
-    solidity = min(solidity, 1.0)
 
-    # Índice de irregularidad: < 0.8 circularity o < 0.85 solidity → sospechoso
-    irreg_circ = max(0.0, (0.85 - circularity) / 0.85)
-    irreg_sol  = max(0.0, (0.90 - solidity) / 0.90)
-    score = (irreg_circ * 0.5 + irreg_sol * 0.5)
-    score = min(score, 1.0)
+    # Score combinado de irregularidad
+    # Un RDV > 0.12 o Circularidad < 0.7 suele indicar bordes malignos
+    irreg_rdv = min(rdv / 0.22, 1.0)
+    irreg_circ = max(0.0, (0.78 - circularity) / 0.78)
+    irreg_sol = max(0.0, (0.94 - solidity) / 0.94)
+    
+    # Potenciar fuertemente el score si hay RDV alto o baja solidez
+    score = (irreg_rdv * 0.45 + irreg_circ * 0.35 + irreg_sol * 0.20)
+    score = min(score * 2.2, 1.0) # Escalado clínico agresivo
 
-    detail = f"Circularidad: {circularity:.2f} | Convexidad: {solidity:.2f}"
+    detail = f"RDV: {rdv:.2f} | Circularidad: {circularity:.2f}"
     return float(score), detail
 
 
@@ -248,9 +298,19 @@ def _color_variation(image, mask):
     except Exception:
         pass
 
-    # Relajar la fórmula para que no todas salgan con coloración "anormal" elevadísima. 
-    # El color es el 3r parámetro, ajustamos la severidad al 50%.
-    raw_score = (l_std + a_std + b_std) / 3 * 2 + delta_e * 0.5 + (num_tones - 1) * 0.10
+    # Penalización específica por colores de alerta clínica (Rojo, Azul, Blanco sobre negro)
+    has_red = np.any(pixels[:, 1] > 150)
+    has_blue = np.any(pixels[:, 2] < 110)
+    has_white = np.any(pixels[:, 0] > 200)
+    has_black = np.any(pixels[:, 0] < 50)
+    
+    alert_colors_score = 0.0
+    if has_black and (has_red or has_blue or has_white):
+        alert_colors_score = 0.5  # Signo claro de posible melanoma
+        
+    # Relajamos muchísimo la desviación estándar normal para que los marrones suaves 
+    # no eleven el score innecesariamente a más de 5.0 o 6.0
+    raw_score = (l_std + a_std + b_std) / 4 + delta_e * 0.1 + (num_tones - 1) * 0.05 + alert_colors_score
     score = min(raw_score, 1.0)
     score = max(0.0, score)
 
@@ -280,14 +340,15 @@ def _diameter(contour, img_w, img_h):
     mole_area_px = cv2.contourArea(contour)
     pct_frame = (mole_area_px / img_area) * 100
 
-    # Conversión calibrada asumiendo un encuadre más típico (50mm en vez de 25mm para evitar falsos positivos)
-    # y además, los usuarios no siempre acercan tanto el móvil (a veces 15-20cm representa un campo mayor de 5-6cm)
-    px_per_mm = img_w / 50.0
+    # Puesto que las cámaras móviles pueden enfocar a gran distancia (FOV de 15cm-20cm reales cruzando la pantalla),
+    # hacemos la conversión mucho más suave: asumimos que un ancho de pantalla representa unos 150 milímetros.
+    px_per_mm = img_w / 150.0
     diameter_mm = diameter_px / px_per_mm
 
-    # Score: lunares > 6mm son clínicamente significativos
+    # Un lunar de 6mm dispararía sospecha.
     if diameter_mm >= 6:
-        score = min(1.0, 0.4 + (diameter_mm - 6) / 20)
+        # A partir de 6mm sube gradualmente (un melanoma avanzado de 15mm daría 10)
+        score = min(1.0, 0.4 + (diameter_mm - 6) / 15.0)
     else:
         score = diameter_mm / 15.0
 

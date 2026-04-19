@@ -3,8 +3,33 @@
  * Camera, Web Speech API, WebSocket, Charts
  */
 
+// Generar o recuperar ID único de dispositivo para sesiones estables
+if (!localStorage.getItem('dermascan_device_id')) {
+    localStorage.setItem('dermascan_device_id', 'dev_' + Math.random().toString(36).substr(2, 9) + Date.now().toString(36));
+}
+const DEVICE_ID = localStorage.getItem('dermascan_device_id');
+
 const socket = io();
-socket.on('connect', () => console.log('[WS] Conectado'));
+socket.on('connect', () => {
+    console.log('[WS] Conectado. Sala:', DEVICE_ID);
+    socket.emit('join_session', { session_id: DEVICE_ID });
+});
+
+socket.on('scan_progress', data => {
+    const scanStatus = document.getElementById('scan-status-text');
+    if (scanStatus) {
+        scanStatus.innerHTML = `<span class="spinner-small"></span> Analizando lunar: <strong>${data.progress}%</strong> completado...`;
+    }
+});
+
+socket.on('scan_complete', data => {
+    const scanStatus = document.getElementById('scan-status-text');
+    if (scanStatus) {
+        scanStatus.innerHTML = '<span style="color:var(--success)">✓ Análisis finalizado.</span>';
+    }
+    displayScanResults(data);
+    loadHistory();
+});
 socket.on('training_progress', d => updateTrainingProgress(d));
 socket.on('training_complete', d => onTrainingComplete(d));
 
@@ -28,6 +53,10 @@ let edgeAnimId = null;
 let edgeBuffer = []; // Buffer para suavizado temporal
 const BUFFER_SIZE = 3;
 let currentQuestionId = ''; // Rastreador de la pregunta activa
+
+// Flags de sincronización para ocultar resultados hasta completar consulta
+let consultationFinished = false;
+let lastScanData = null;
 
 async function initCamera() {
     try {
@@ -354,28 +383,52 @@ function handleFileUpload(e) {
 }
 
 async function sendScan(imageData) {
-    const container = document.getElementById('scanResults');
-    container.innerHTML = '<div class="empty-state"><span class="spinner"></span><p>Analizando imagen...</p></div>';
+    const scanResults = document.getElementById('scanResults');
+    consultationFinished = false; // Resetear estado de la consulta
+    lastScanData = null;
     
-    const startTime = Date.now();
-
     try {
+        switchTab('nlp');
+        const questionText = document.getElementById('questionText');
+        questionText.innerHTML = '<span class="spinner-small"></span> Preparando preguntas...';
+        
+        scanResults.style.display = 'block';
+        scanResults.innerHTML = `
+            <div id="scan-status-text" class="status-msg" style="margin-bottom:15px; background:var(--bg-card); padding:10px; border-radius:8px; border-left:4px solid var(--accent)">
+                <span class="spinner-small"></span> Iniciando escáner de consenso (300 pasadas)...
+            </div>
+            <div id="fast-results-preview"></div>
+        `;
+
         const res = await fetch('/api/scan', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ image: imageData }),
+            body: JSON.stringify({ image: imageData, session_id: DEVICE_ID }),
         });
 
-        // Mientras se procesa (con el delay del servidor), enviamos al usuario a las preguntas
-        switchTab('nlp');
-        document.getElementById('questionText').innerHTML = '<span class="spinner-small"></span> Ejecutando consenso de 5 modelos... espere';
-
         const data = await res.json();
-        if (data.error) { container.innerHTML = `<p>${data.error}</p>`; return; }
+        if (data.error) {
+            alert(data.error);
+            switchTab('scan');
+            return;
+        }
+
+        if (data.next_question) {
+            questionText.textContent = data.next_question;
+            if (data.next_action) {
+                currentQuestionId = data.next_action.action <= 5 ? 
+                    ['dolor','picor','tamaño','sangrado','color','duracion'][data.next_action.action] : '';
+            }
+            speakQuestion();
+        }
 
         displayScanResults(data);
         
-        // Renderizar cuadro inicial de síntomas (todos en ?)
+        if (data.next_question) {
+            const qa = document.getElementById('quickAnswers');
+            if (qa) qa.style.display = 'flex';
+        }
+        
         if (data.symptom_summary) {
             const summaryDiv = document.getElementById('symptomSummary');
             if (summaryDiv) {
@@ -384,19 +437,31 @@ async function sendScan(imageData) {
                     data.symptom_summary.map(s => `<div class="symptom-item">${s}</div>`).join('');
             }
         }
-
-        // Hablar la primera pregunta automáticamente
-        if (data.next_question) {
-            setTimeout(() => speakQuestion(), 500);
-        }
     } catch (e) {
-        container.innerHTML = `<p>Error: ${e.message}</p>`;
+        if (scanResults) scanResults.innerHTML = `<p>Error: ${e.message}</p>`;
     }
 }
 
 
 function displayScanResults(data) {
+    if (!data) return;
+    lastScanData = data; // Siempre guardar los últimos datos
+
     const container = document.getElementById('scanResults');
+    
+    // Si la consulta no ha terminado, mostramos estado de espera en la pestaña de escáner
+    if (!consultationFinished) {
+        container.innerHTML = `
+            <div class="empty-state" style="padding:40px; text-align:center">
+                <span class="spinner"></span>
+                <h3 style="margin-top:20px">Análisis listo, esperando consulta clínico...</h3>
+                <p>Por favor, completa las preguntas en la pestaña "Consulta por Voz" para ver el diagnóstico final.</p>
+                <button class="btn btn-accent" style="margin-top:20px" onclick="switchTab('nlp')">Ir a responder →</button>
+            </div>
+        `;
+        return;
+    }
+
     const cnn = data.cnn;
     const abcde = data.abcde;
     const riskClass = cnn.risk_level === 'maligno' ? 'alto' : cnn.risk_level === 'pre-maligno' ? 'medio' : 'bajo';
@@ -408,7 +473,7 @@ function displayScanResults(data) {
                 <span class="risk-badge ${riskClass}">${cnn.risk_label} riesgo</span>
             </div>
             <div style="margin-top:6px;font-size:0.85rem;color:var(--text-secondary)">
-                Consenso (5 pasadas): ${(cnn.confidence * 100).toFixed(1)}% de precisión
+                Consenso (300 pasadas): ${(cnn.confidence * 100).toFixed(1)}% de precisión
             </div>
         </div>`;
 
@@ -547,6 +612,10 @@ async function submitManualResponse() {
     document.getElementById('manualInput').value = '';
 }
 
+async function sendQuickAnswer(text) {
+    await sendVoiceResponse(text);
+}
+
 async function sendVoiceResponse(text) {
     const container = document.getElementById('nlpResults');
     container.innerHTML = '<div class="empty-state"><span class="spinner"></span><p>Procesando...</p></div>';
@@ -555,7 +624,7 @@ async function sendVoiceResponse(text) {
         const res = await fetch('/api/voice/process', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ text, question_id: currentQuestionId }),
+            body: JSON.stringify({ text, question_id: currentQuestionId, session_id: DEVICE_ID }),
         });
         const data = await res.json();
         displayNlpResults(data);
@@ -603,16 +672,27 @@ function displayNlpResults(data) {
     }
 
     // Next question
+    const quickAnswers = document.getElementById('quickAnswers');
     if (data.next_question) {
         document.getElementById('questionText').textContent = data.next_question;
+        if (quickAnswers) quickAnswers.style.display = 'flex';
         if (data.next_action) {
             currentQuestionId = data.next_action.action <= 5 ? 
                 ['dolor','picor','tamaño','sangrado','color','duracion'][data.next_action.action] : '';
         }
+    } else {
+        if (quickAnswers) quickAnswers.style.display = 'none';
     }
 
     // Final diagnosis
     if (data.is_final && data.diagnosis) {
+        consultationFinished = true; // MARCAR COMO FINALIZADO
+        
+        // Actualizar la UI del escáner con los datos que teníamos guardados
+        if (lastScanData) {
+            displayScanResults(lastScanData);
+        }
+
         const d = data.diagnosis;
         const riskClass = d.risk_level === 'maligno' ? 'alto' : d.risk_level === 'pre-maligno' ? 'medio' : 'bajo';
         const diagDiv = document.getElementById('diagnosisResult');

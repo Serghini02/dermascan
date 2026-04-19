@@ -53,15 +53,20 @@ dqn_agent.load()
 tokenizer = get_tokenizer()
 expert_system = MedicalExpertSystem()
 
-# Estado de la sesión de diagnóstico actual
-current_session = {
-    "active": False,
-    "cnn_result": None,
-    "symptoms": {},
-    "questions_asked": [],
-    "abcde_scores": None,
-    "image_data": None,
-}
+# Almacén de sesiones por Socket ID (multi-usuario)
+sessions_store = {}
+
+def get_session(sid):
+    if sid not in sessions_store:
+        sessions_store[sid] = {
+            "active": False,
+            "cnn_result": None,
+            "symptoms": {},
+            "questions_asked": [],
+            "abcde_scores": None,
+            "image_data": None,
+        }
+    return sessions_store[sid]
 
 # Detectar y cargar HAM10000
 def init_ham10000():
@@ -101,14 +106,58 @@ def index():
 # RUTAS — VISIÓN / ESCÁNER
 # =============================================================================
 
+def background_heavy_analysis(session_id, img_pil, img_bgr, image_b64):
+    """Tarea de fondo aislada por sala de sesión."""
+    try:
+        def progress_cb(percent):
+            # Notificar solo al dispositivo que inició la sesión
+            socketio.emit('scan_progress', {'progress': percent}, to=session_id)
+            
+        # 1. CNN Refinada
+        cnn_result = classifier.predict(img_pil, n_passes=300, callback=progress_cb)
+        
+        # 2. ABCDE Refinado
+        abcde = analyze_mole(img_bgr, n_passes=300, callback=progress_cb)
+        
+        # Actualizar sesión específica
+        sess = get_session(session_id)
+        sess["cnn_result"] = cnn_result
+        sess["abcde_scores"] = abcde
+        
+        # Notificar fin mediante WebSockets a la sala privada
+        socketio.emit('scan_complete', {
+            'cnn': cnn_result,
+            'abcde': abcde,
+            'symptom_summary': get_symptom_summary(sess.get("symptoms", {}))
+        }, to=session_id)
+        print(f"[App] Análisis completado para sesión: {session_id}")
+    except Exception as e:
+        import traceback
+        traceback.print_exc()
+        socketio.emit('scan_error', {'error': str(e)}, to=session_id)
+
+
+@socketio.on('join_session')
+def handle_join(data):
+    """Une al socket a una sala privada basada en su ID de dispositivo."""
+    session_id = data.get('session_id')
+    if session_id:
+        import flask
+        from flask_socketio import join_room
+        join_room(session_id)
+        print(f"[WS] Socket {request.sid} se unió a la sala: {session_id}")
+
 @app.route('/api/scan', methods=['POST'])
 def scan_image():
-    """Escanea una imagen de un lunar."""
+    """Escaneo rápido inicial + Lanzamiento de análisis pesado en hilos."""
     data = request.json
     image_b64 = data.get("image", "")
-
+    session_id = data.get("session_id") # Identificador persistente
+    
     if not image_b64:
         return jsonify({"error": "No se recibió imagen"}), 400
+    if not session_id:
+        return jsonify({"error": "No se recibió Session ID"}), 400
 
     try:
         # Decodificar imagen base64
@@ -120,83 +169,47 @@ def scan_image():
         img_np = np.array(img_pil)
         img_bgr = cv2.cvtColor(img_np, cv2.COLOR_RGB2BGR)
 
-        # 1. Clasificación CNN
-        if not classifier.loaded:
-            return jsonify({"error": "Modelo CNN no disponible. Asegúrate de que skin_cnn.pth existe en /models"}), 503
-        cnn_result = classifier.predict(img_pil)
+        # EVALUACIÓN RÁPIDA (1 pasada) para decidir la primera pregunta de inmediato
+        cnn_fast = classifier.predict(img_pil, n_passes=1)
+        abcde_fast = analyze_mole(img_bgr, n_passes=1)
 
-        # 2. Análisis ABCDE
-        abcde = analyze_mole(img_bgr)
+        # Filtro de Seguridad rápido
+        if abcde_fast.get("risk") == "no_detectado":
+             return jsonify({
+                 "error": "No se detecta un lunar claro. Por favor, encuadre la lesión en el círculo y asegure buena iluminación."
+             }), 422
 
-        # Filtro de Seguridad heurístico: si OpenCV no encuentra contornos de lunar
-        if abcde.get("risk") == "no_detectado":
-            cnn_result = {
-                "diagnosis_code": "no_detectado",
-                "diagnosis_name": "No se detecta lunar o lesión",
-                "confidence": 0.0,
-                "risk_level": "benigno",
-                "risk_label": "Nulo / No piel",
-                "risk_color": "#94a3b8",
-                "probabilities": {
-                    "no_detectado": {
-                        "name": "La imagen no parece ser un lunar",
-                        "probability": 1.0,
-                        "risk": "benigno"
-                    }
-                },
-                "prob_vector": [0.0] * 7,
-                "no_mole_found": True
-            }
-        
-        # Alerta de Riesgo Secundario
-        elif cnn_result.get("risk_level") == "benigno" and cnn_result.get("probabilities"):
-            # Buscar si alguna categoría maligna supera el 15% pero no es la máxima
-            has_sub_risk = False
-            for code, info in cnn_result["probabilities"].items():
-                if info["risk"] == "maligno" and info["probability"] >= 0.15:
-                    has_sub_risk = True
-                    break
-            
-            if has_sub_risk:
-                cnn_result["risk_level"] = "pre-maligno"
-                cnn_result["risk_label"] = "Medio (Riesgo secundario elevado)"
-                cnn_result["risk_color"] = "#f97316"
+        # Inicializar sesión aislada
+        sess = get_session(session_id)
+        sess["active"] = True
+        sess["cnn_result"] = cnn_fast
+        sess["abcde_scores"] = abcde_fast
+        sess["symptoms"] = {}
+        sess["questions_asked"] = []
+        sess["image_data"] = image_b64
 
-        # Actualizar sesión
-        current_session["active"] = True
-        current_session["cnn_result"] = cnn_result
-        current_session["abcde_scores"] = abcde
-        current_session["symptoms"] = {}
-        current_session["questions_asked"] = []
-        current_session["image_data"] = image_b64  # Guardar imagen para historial
+        # Lanzar proceso pesado
+        threading.Thread(target=background_heavy_analysis, args=(session_id, img_pil, img_bgr, image_b64)).start()
 
-        # Simular tiempo de procesamiento para el "consenso" de las 5 pasadas
-        import time
-        time.sleep(2.0)
-
-        # 3. Consultar al DRL qué pregunta hacer primero
-        state = _build_state()
+        # Consultar DRL para la PRIMERA PREGUNTA
+        state = _build_state(session_id)
         drl_prediction = dqn_agent.predict(state)
-        
-        # Aplicar reglas de flujo para forzar preguntas de síntomas
         drl_prediction = apply_flow_rules(drl_prediction, [])
 
         return jsonify({
-            "cnn": cnn_result,
-            "abcde": abcde,
-            "symptom_summary": get_symptom_summary({}),
+            "status": "in_progress",
+            "cnn": cnn_fast,
+            "abcde": abcde_fast,
             "next_action": drl_prediction,
             "next_question": _get_question_text(drl_prediction["action"]),
-            "status": "Redirigiendo a cuestionario de síntomas para validación..."
+            "symptom_summary": get_symptom_summary({}),
+            "message": "Analizando imagen en detalle..."
         })
 
     except Exception as e:
         import traceback
         traceback.print_exc()
         return jsonify({"error": str(e)}), 500
-
-
-
 
 
 # =============================================================================
@@ -209,10 +222,15 @@ def process_voice():
     data = request.json
     text = data.get("text", "")
     question_id = data.get("question_id", "")
-
+    session_id = data.get("session_id") # Identificador persistente
+    
     if not text.strip():
         return jsonify({"error": "Texto vacío"}), 400
+    if not session_id:
+        return jsonify({"error": "No se recibió Session ID"}), 400
 
+    sess = get_session(session_id)
+    
     # 1. Corrección regex
     correction = correct_text(text)
 
@@ -220,31 +238,31 @@ def process_voice():
     token_result = tokenizer.tokenize(correction["corrected"])
 
     # 3. Extracción de síntomas
-    symptoms = extract_symptoms(correction["corrected"])
+    symptoms = extract_symptoms(correction["corrected"], context_symptom=question_id)
 
-    # 4. Actualizar sesión
-    current_session["symptoms"].update(symptoms)
+    # 4. Actualizar sesión específica
+    sess["symptoms"].update(symptoms)
     if question_id:
-        current_session["questions_asked"].append(question_id)
+        sess["questions_asked"].append(question_id)
 
     # 5. Construir estado y preguntar al DRL qué hacer después
-    state = _build_state()
+    state = _build_state(session_id)
     drl_pred = dqn_agent.predict(state)
 
     # Aplicar reglas de flujo (Obligar preguntas, evitar repetidas)
-    drl_pred = apply_flow_rules(drl_pred, current_session["questions_asked"])
+    drl_pred = apply_flow_rules(drl_pred, sess["questions_asked"])
 
     # ¿Es diagnóstico final?
     is_final = drl_pred["action"] == 6
     diagnosis = None
     if is_final:
-        diagnosis = _finalize_diagnosis()
+        diagnosis = _finalize_diagnosis(session_id)
 
     return jsonify({
         "correction": correction,
         "tokens": token_result,
         "symptoms": symptoms,
-        "symptom_summary": get_symptom_summary(current_session["symptoms"]),
+        "symptom_summary": get_symptom_summary(sess["symptoms"]),
         "next_action": drl_pred,
         "next_question": _get_question_text(drl_pred["action"]),
         "is_final": is_final,
@@ -445,14 +463,15 @@ def apply_flow_rules(drl_pred, asked_ids_list):
     return drl_pred
 
 
-def _build_state():
+def _build_state(sid):
     """Construye el vector de estado para el DRL."""
+    sess = get_session(sid)
     cnn_probs = [0.0] * 7
-    if current_session.get("cnn_result"):
-        cnn_probs = current_session["cnn_result"].get("prob_vector", [0.0] * 7)
+    if sess.get("cnn_result"):
+        cnn_probs = sess["cnn_result"].get("prob_vector", [0.0] * 7)
 
-    symptom_vec = symptoms_to_vector(current_session.get("symptoms", {}))
-    num_questions = len(current_session.get("questions_asked", [])) / 6.0
+    symptom_vec = symptoms_to_vector(sess.get("symptoms", {}))
+    num_questions = len(sess.get("questions_asked", [])) / 6.0
 
     state = cnn_probs + symptom_vec + [num_questions]
     return np.array(state, dtype=np.float32)
@@ -469,11 +488,12 @@ def _get_question_text(action):
     return ""
 
 
-def _finalize_diagnosis():
+def _finalize_diagnosis(sid):
     """Genera el diagnóstico final con toda la info acumulada."""
-    cnn = current_session.get("cnn_result", {})
-    abcde = current_session.get("abcde_scores", {})
-    symptoms = current_session.get("symptoms", {})
+    sess = get_session(sid)
+    cnn = sess.get("cnn_result", {})
+    abcde = sess.get("abcde_scores", {})
+    symptoms = sess.get("symptoms", {})
 
     # Generar diagnóstico refinado mediante el Sistema Experto (Reglas)
     expert_result = expert_system.apply_rules(cnn, abcde, symptoms)
@@ -481,14 +501,14 @@ def _finalize_diagnosis():
     # Guardar en BD (incluyendo la imagen de la sesión)
     db.add_consultation(
         cnn_diagnosis=cnn.get("diagnosis_code"),
-        image_data=current_session.get("image_data"),
+        image_data=sess.get("image_data"),
         cnn_confidence=cnn.get("confidence", 0),
         cnn_probabilities=cnn.get("probabilities"),
         symptoms=symptoms,
         abcde_scores=abcde,
         drl_diagnosis=cnn.get("diagnosis_code"),
         risk_level=expert_result["refined_risk"],
-        questions_asked=len(current_session.get("questions_asked", [])),
+        questions_asked=len(sess.get("questions_asked", [])),
         final_recommendation=expert_result["recommendation"],
     )
 

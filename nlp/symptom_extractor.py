@@ -102,13 +102,36 @@ from .symptom_model import SymptomClassifier
 classifier = SymptomClassifier()
 classifier.load()
 
-def extract_symptoms(text):
+def extract_symptoms(text, context_symptom=None):
     """
     Extrae síntomas del texto del paciente.
     Usa el modelo entrenado de ML si está disponible, con fallback a regex.
     """
     text_lower = text.lower().strip()
     results = {}
+
+    # Normalización agresiva de acentos
+    import unicodedata
+    def strip_accents(s):
+        return ''.join(c for c in unicodedata.normalize('NFD', s) if unicodedata.category(c) != 'Mn')
+
+    text_clean = strip_accents(text_lower)
+    # Eliminar puntuación
+    import string
+    text_clean = text_clean.translate(str.maketrans('', '', string.punctuation)).strip()
+
+    generic_negatives = ["no", "nada", "tampoco", "nada de nada", "que va", "nop", "no nada"]
+    generic_positives = ["si", "claro", "por supuesto", "un poco", "si un poco", "algo", "mucho", "bastante"]
+    
+    is_generic_neg = text_clean in generic_negatives
+    is_generic_pos = text_clean in generic_positives
+
+    if (is_generic_neg or is_generic_pos) and context_symptom:
+        results[context_symptom] = {
+            "detected": True,
+            "positive": is_generic_pos
+        }
+        return results
 
     # Intentar predicción con el modelo ML
     ml_predictions = None
@@ -118,53 +141,63 @@ def extract_symptoms(text):
     for symptom, patterns in SYMPTOM_PATTERNS.items():
         detected = False
         is_positive = None
-        duration_value = None
+        
+        # 1. Comprobar si el síntoma es el objetivo de la pregunta actual
+        is_context = (symptom == context_symptom)
 
-        # Si es un síntoma que el modelo ML maneja, lo usamos
+        # 2. Intentar predicción con ML SOLO si el modelo está entrenado
         if ml_predictions and symptom in ml_predictions:
-            is_positive = ml_predictions[symptom]
-            detected = is_positive
-        else:
-            # Fallback a REGEX (o para duración que no está en el clasificador base)
-            # Comprobar patrones negativos primero
-            for pattern in patterns.get("negative", []):
-                if re.search(pattern, text_lower, re.IGNORECASE):
-                    is_positive = False
-                    break
+            # Solo consideramos el ML si predice POSITIVO o si es el síntoma del contexto
+            if ml_predictions[symptom] is True:
+                is_positive = True
+                detected = True
+            elif is_context:
+                is_positive = False
+                detected = True
 
-            # Si no hay negativo, buscar positivo
-            if is_positive is None:
-                for pattern in patterns.get("positive", []):
-                    match = re.search(pattern, text_lower, re.IGNORECASE)
-                    if match:
-                        is_positive = True
-                        detected = True
-                        break
+        # 3. Fallback/Refuerzo con REGEX (Mayor prioridad si hay match explícito)
+        # Comprobar patrones negativos
+        for pattern in patterns.get("negative", []):
+            if re.search(pattern, text_lower, re.IGNORECASE):
+                is_positive = False
+                detected = True
+                break
 
-        # Caso especial para duración (siempre requiere regex para extraer valores)
+        # Buscar positivo
+        if is_positive is not None and is_positive is False and not is_context:
+             # Si ya es negativo por ML pero no es contexto, lo ignoramos a menos que regex diga positivo
+             pass
+        
+        # Siempre buscar positivo por regex
+        for pattern in patterns.get("positive", []):
+            if re.search(pattern, text_lower, re.IGNORECASE):
+                is_positive = True
+                detected = True
+                break
+
+        # Caso especial para duración
         if symptom == "duracion":
             dur_match = re.search(r'(\d+)\s*(días?|semanas?|meses?|años?)', text_lower)
             if dur_match:
-                duration_value = {
-                    "value": int(dur_match.group(1)),
-                    "unit": dur_match.group(2),
+                results[symptom] = {
+                    "detected": True,
+                    "positive": True,
+                    "duration": {"value": int(dur_match.group(1)), "unit": dur_match.group(2)}
                 }
-                detected = True
-                is_positive = True
+                continue # Ya procesado
             elif is_positive is None:
-                # Buscar palabras clave generales de tiempo si no hay números
-                time_keywords = [r'hace\s+mucho', r'tiempo', r'siempre', r'reciente', r'nuevo']
-                for kw in time_keywords:
+                for kw in [r'hace\s+mucho', r'tiempo', r'siempre', r'reciente', r'nuevo']:
                     if re.search(kw, text_lower):
                         is_positive = True
                         detected = True
                         break
 
-        results[symptom] = {
-            "detected": detected,
-            "positive": is_positive,
-            "duration": duration_value,
-        }
+        # Solo añadir al resultado si fue detectado en este input
+        if detected:
+            results[symptom] = {
+                "detected": True,
+                "positive": is_positive,
+            }
 
     return results
 

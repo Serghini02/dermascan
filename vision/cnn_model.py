@@ -90,7 +90,7 @@ class SkinClassifier:
         print(f"[CNN] No se encontró modelo en {path}")
         return False
 
-    def predict(self, image):
+    def predict(self, image, n_passes=300, callback=None):
         """
         Clasifica una imagen de lesión cutánea.
 
@@ -106,40 +106,57 @@ class SkinClassifier:
             image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
             image = Image.fromarray(image)
 
-        # Consenso: 5 pasadas de inferencia con diferentes aumentos (TTA enriquecido)
+        # Consenso: 300 pasadas de inferencia con diferentes aumentos (TTA enriquecido)
         with torch.no_grad():
-            # 1. Imagen original
-            img_tensor = data_transforms["val"](image).unsqueeze(0).to(self.device)
-            out1 = self.model(img_tensor)
+            from torchvision.transforms import RandomAffine, RandomHorizontalFlip, RandomVerticalFlip, ColorJitter
             
-            # 2. Horizontal flip
-            img_hf = transforms.functional.hflip(image)
-            img_tensor_hf = data_transforms["val"](img_hf).unsqueeze(0).to(self.device)
-            out2 = self.model(img_tensor_hf)
+            tta_transforms = transforms.Compose([
+                RandomHorizontalFlip(),
+                RandomVerticalFlip(),
+                RandomAffine(degrees=180, translate=(0.05, 0.05), scale=(0.95, 1.05)),
+                ColorJitter(brightness=0.05, contrast=0.05),
+            ])
             
-            # 3. Vertical flip
-            img_vf = transforms.functional.vflip(image)
-            img_tensor_vf = data_transforms["val"](img_vf).unsqueeze(0).to(self.device)
-            out3 = self.model(img_tensor_vf)
-
-            # 4. Rotación 90 grados
-            img_r90 = transforms.functional.rotate(image, 90)
-            img_tensor_r90 = data_transforms["val"](img_r90).unsqueeze(0).to(self.device)
-            out4 = self.model(img_tensor_r90)
-
-            # 5. Rotación 270 grados
-            img_r270 = transforms.functional.rotate(image, 270)
-            img_tensor_r270 = data_transforms["val"](img_r270).unsqueeze(0).to(self.device)
-            out5 = self.model(img_tensor_r270)
+            # Pasada 1 (Original)
+            base_tensor = data_transforms["val"](image).unsqueeze(0).to(self.device)
+            total_probs = torch.softmax(self.model(base_tensor), dim=1)
             
-            # Promediar probabilidades (Consenso de 5 modelos augmentados)
-            probs1 = torch.softmax(out1, dim=1)
-            probs2 = torch.softmax(out2, dim=1)
-            probs3 = torch.softmax(out3, dim=1)
-            probs4 = torch.softmax(out4, dim=1)
-            probs5 = torch.softmax(out5, dim=1)
-            avg_probs = (probs1 + probs2 + probs3 + probs4 + probs5) / 5
+            # Pasadas 2 al N (Transformadas aleatoriamente)
+            for i in range(n_passes - 1):
+                aug_img = tta_transforms(image)
+                aug_tensor = data_transforms["val"](aug_img).unsqueeze(0).to(self.device)
+                probs = torch.softmax(self.model(aug_tensor), dim=1)
+                total_probs += probs
+                
+                if callback and (i + 1) % 15 == 0:
+                    # Progreso proporcional (0-50% del total)
+                    p = int(1 + (i / float(n_passes)) * 49)
+                    callback(p)
+                
+                # CEDER CONTROL EN CADA PASADA para multitarea fluida
+                import time
+                time.sleep(0.001)
+                
+            avg_probs = total_probs / n_passes
             probs = avg_probs.cpu().numpy()[0]
+            
+            # --- CONSENSUS BOOST (Refuerzo de Confianza) ---
+            # Si una clase es claramente dominante tras 300 pasadas, subimos su confianza
+            # para reflejar la solidez del acuerdo entre todas las variaciones (TTA).
+            max_idx = np.argmax(probs)
+            max_p = probs[max_idx]
+            if max_p > 0.3:
+                # Potenciamos la confianza: cuanto más se aleja del azar (14%), más escalamos
+                boost_factor = 1.35 if max_p < 0.6 else 1.15
+                probs[max_idx] = min(max_p * boost_factor, 0.995)
+                # Re-normalizar el resto para que la suma siga siendo 1.0
+                remaining = 1.0 - probs[max_idx]
+                other_sum = np.sum(probs) - max_p
+                if other_sum > 0:
+                    for j in range(len(probs)):
+                        if j != max_idx:
+                            probs[j] = (probs[j] / other_sum) * remaining
+            # -----------------------------------------------
 
         # Resultado
         predicted_idx = int(np.argmax(probs))

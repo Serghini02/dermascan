@@ -22,7 +22,8 @@ MEDICAL_VOCAB = {
     "brazo", "pierna", "espalda", "pecho", "cara", "cuello",
     "hombro", "abdomen", "muslo", "mano", "pie", "cabeza", "torso",
     # Acciones
-    "crecer", "cambiar", "sangrar", "doler", "picar", "molestar",
+    "crecer", "cambiar", "sangrar", "doler", "picar", "molestar", "pica", "duele", "duele un poco", "molesta",
+    "duele", "sangra", "crecía", "puntiagudo", "áspero", "pica mucho",
     # Temporalidad
     "semana", "mes", "año", "día", "recientemente", "siempre",
     "nuevo", "antiguo", "reciente",
