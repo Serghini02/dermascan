@@ -10,86 +10,60 @@ import re
 SYMPTOM_PATTERNS = {
     "dolor": {
         "positive": [
-            r'\b(sí|si)\b.*\b(du[eé]le|dolor|molest[ia]a?)\b',
-            r'\b(du[eé]le|dolor|molest[ia]a?|escuece|arde)\b',
-            r'\b(me\s+duele|tengo\s+dolor|siento\s+dolor)\b',
-            r'\b(bastante|mucho|algo)\s+(dolor|molestia)\b',
+            r'(sí|si).*(dol|duel|escoz|molest|quem|ard|pinch|punz|latid|puls)',
+            r'(duele|dolor|molestia|molesta|escozor|escuece|ardor|arde|pinchazo|punzada|quemaz[oó]n|quema|latido|puls[aá]til|sensibilidad|sensible)',
         ],
         "negative": [
-            r'\b(no)\b.*\b(du[eé]le|dolor|molest)\b',
-            r'\b(no\s+me\s+duele)\b',
-            r'\b(nada\s+de\s+dolor)\b',
-            r'\b(sin\s+dolor)\b',
+            r'\bno\b.*(dol|duel|molest|experimento)',
+            r'(sin\s+dolor|ni\s+rastro\s+de\s+dolor|nada\s+de\s+dolor|no\s+hay\s+dolor|cero\s+molestias|no\s+experimento\s+molestia|para\s+nada)',
         ],
     },
     "picor": {
         "positive": [
-            r'\b(sí|si)\b.*\b(pica|pic[ao]r|escozor|comez[oó]n)\b',
-            r'\b(pica|pic[ao]r|escozor|comez[oó]n|ras[ck]a)\b',
-            r'\b(me\s+pica|tengo\s+picor)\b',
-            r'\b(a\s+veces\s+pica)\b',
+            r'(sí|si).*(pic|comez|rasc|hormig|un\s+poquito)',
+            r'(picor|pica|comez[oó]n|rascar|rasc[oó]|picaz[oó]n|picado|hormigueo|un\s+poquito)',
         ],
         "negative": [
-            r'\b(no)\b.*\b(pica|picor|escozor)\b',
-            r'\b(no\s+me\s+pica)\b',
-            r'\b(sin\s+picor)\b',
+            r'\bno\b.*(pic|rasc|comez|noto)',
+            r'(sin\s+picor|no\s+noto\s+picor|no\s+me\s+rasco|sin\s+comez[oó]n|ni\s+me\s+pica|ni\s+pica|no\s+tengo\s+comez[oó]n|sin\s+rastro)',
         ],
     },
     "tamaño": {
         "positive": [
-            r'\b(sí|si)\b.*\b(crec|cambi|grande)\b',
-            r'\b(ha\s+crecido|está\s+creciendo|más\s+grande)\b',
-            r'\b(cambi[oóa]do?\s+de\s+tamaño)\b',
-            r'\b(aumenta(do)?|crece|creci[oó]|crecido|agrand)\b',
-            r'\b(era\s+más\s+pequeñ[oa])\b',
-            r'\b(ha\s+aumentado|ha\s+crecido)\b',
+            r'(sí|si).*(crec|cambi|grande|aument|expand|extend|abult|duplic|noto)',
+            r'(ha\s+crecido|está\s+creciendo|más\s+grande|aumenta(do)?|crece|creci[oó]|crecido|agrand|expand|extend|abultado|engrosado|duplicado|mancha|forma|crecio)',
         ],
         "negative": [
-            r'\b(no)\b.*\b(crec|cambi|grande)\b',
-            r'\b(mismo\s+tamaño|no\s+ha\s+cambiado)\b',
-            r'\b(igual\s+que\s+siempre)\b',
+            r'\bno\b.*(crec|cambi|grande|variado|noto)',
+            r'(mismo\s+tama[ñn]o|no\s+ha\s+cambiado|no\s+ha\s+variado|igual\s+que\s+siempre|no\s+ha\s+crecido|id[eé]ntico|no\s+noto\s+cambio|sin\s+variaci[oó]n)',
         ],
     },
     "sangrado": {
         "positive": [
-            r'\b(sí|si)\b.*\b(sangr[aoe]|sangr[oó]|hemorrag)\b',
-            r'\b(sangr[ae]|sangr[oó]|ha\s+sangrado|sangrado)\b',
-            r'\b(sale\s+sangre|echó\s+sangre)\b',
-            r'\b(a\s+veces\s+sangra)\b',
-            r'\b(veces?\s+sangr)\b',
+            r'(sí|si).*(sangr|hemorrag|manch|supur|costr)',
+            r'(sangr[aeó]|sangre|ha\s+sangrado|sangrado|hemorragia|manch[aó]|supura|costra)',
         ],
         "negative": [
-            r'\b(no)\b.*\b(sangr[aoe]|sangrado)\b',
-            r'\b(nunca\s+ha\s+sangrado)\b',
-            r'\b(sin\s+sangrado)\b',
+            r'(no|ning[uú]n).*(sangr|hemorrag|noto|episodio)',
+            r'(nunca\s+ha\s+sangrado|sin\s+sangrado|no\s+suelta\s+sangre|completamente\s+seco|ni\s+una\s+sola\s+vez|jam[aá]s|ning[uú]n\s+episodio)',
         ],
     },
     "color": {
         "positive": [
-            r'\b(sí|si)\b.*\b(cambi[oóa]|color|oscurec|oscuro)\b',
-            r'\b(cambi[oóa](do?)?\s+de\s+color|cambi[oóa]\s+de\s+color)\b',
-            r'\b(más\s+oscuro|más\s+negro|más\s+rojo|más\s+claro|era\s+más\s+claro)\b',
-            r'colores?\s+diferent',
-            r'\b(multicolor|irregular)\b',
-            r'\b(oscureci(do|ó)|se\s+ha\s+oscurecido)\b',
-            r'\b(antes\s+era\s+\w+\s+ahora\s+es)\b',
-            r'\b(partes?\s+rojiz|manchas?\s+dentro)\b',
+            r'(sí|si).*(cambi|color|oscurec|oscuro|negro|rojo|marr|blanc|azul|rojiz|bicolor|manch)',
+            r'(oscureci(do|ó)|más\s+oscuro|más\s+negro|más\s+rojo|más\s+rojizo|más\s+claro|tonalidad|pigmentaci[oó]n|bicolor|manchas?\s+dentro|borde\s+azulado|zonas\s+blancas)',
         ],
         "negative": [
-            r'\b(no)\b.*\b(cambi|color)\b',
-            r'\b(mismo\s+color|color\s+igual|el\s+mismo|igual(?:\s+de\s+color)?)\b',
-            r'\b(color\s+es\s+el\s+mismo|sigue\s+igual|color\s+uniforme)\b',
+            r'\bno\b.*(cambi|color|noto|mutado|variaci)',
+            r'(mismo\s+color|color\s+igual|uniforme|no\s+ha\s+mutado|mantiene\s+su\s+tono|estabilidad|id[eé]ntico|sin\s+variaci[oó]n\s+crom[aá]tica|tonalidad\s+sigue\s+siendo)',
         ],
     },
     "duracion": {
         "positive": [
-            r'(\d+)\s*(días?|semanas?|meses?|años?)',
-            r'\b(hace\s+(poco|mucho|tiempo|unos|bastante|algún))\b',
-            r'\b(recientemente|reciente|nuevo|últimamente)\b',
-            r'\b(desde\s+hace)\s+\w+',
-            r'\b(siempre|toda\s+la\s+vida|de\s+nacimiento)\b',
-            r'\b(hace\s+\w+\s+tiempo)\b',
-            r'estas?\s+(semanas?|días?|meses?)',
+            r'(\d+|quince|un|una|dos|tres|varios?|un\s+par|unos?|unas?)\s*(días?|semanas?|meses?|años?|d[eé]cada|verano)',
+            r'(hace\s+(poco|mucho|quince|tiempo|unos|bastante|algún|varios?|memoria))',
+            r'(recientemente|reciente|nuevo|últimamente|apareci[oó]|not[eé]|sali[oó]|memoria|lleva\s+conmigo|año|semanas)',
+            r'(desde\s+hace|de\s+toda\s+la\s+vida|de\s+nacimiento|desde\s+que\s+nac[ií])',
         ],
         "negative": [],
     },
@@ -120,18 +94,19 @@ def extract_symptoms(text, context_symptom=None):
     import string
     text_clean = text_clean.translate(str.maketrans('', '', string.punctuation)).strip()
 
-    generic_negatives = ["no", "nada", "tampoco", "nada de nada", "que va", "nop", "no nada"]
-    generic_positives = ["si", "claro", "por supuesto", "un poco", "si un poco", "algo", "mucho", "bastante"]
+    generic_negatives = ["no", "nada", "tampoco", "nada de nada", "que va", "nop", "no nada", "jamas", "nunca"]
+    generic_positives = ["si", "claro", "por supuesto", "un poco", "un poquito", "si un poco", "algo", "mucho", "bastante"]
     
-    is_generic_neg = text_clean in generic_negatives
-    is_generic_pos = text_clean in generic_positives
+    is_generic_neg = text_clean in generic_negatives or any(kw in text_clean.split() for kw in ["no", "jamas", "nunca", "tampoco", "nada"])
+    is_generic_pos = text_clean in generic_positives or any(kw in text_clean.split() for kw in ["si", "claro", "bastante", "mucho", "poquito"])
 
     if (is_generic_neg or is_generic_pos) and context_symptom:
         results[context_symptom] = {
             "detected": True,
-            "positive": is_generic_pos
+            "positive": True if (is_generic_pos and not is_generic_neg) else False
         }
-        return results
+        if len(text_clean.split()) <= 3:
+            return results
 
     # Intentar predicción con el modelo ML
     ml_predictions = None
@@ -157,32 +132,32 @@ def extract_symptoms(text, context_symptom=None):
 
         # 3. Fallback/Refuerzo con REGEX (Mayor prioridad si hay match explícito)
         # Comprobar patrones negativos
+        neg_matched = False
         for pattern in patterns.get("negative", []):
             if re.search(pattern, text_lower, re.IGNORECASE):
                 is_positive = False
                 detected = True
+                neg_matched = True
                 break
 
-        # Buscar positivo
-        if is_positive is not None and is_positive is False and not is_context:
-             # Si ya es negativo por ML pero no es contexto, lo ignoramos a menos que regex diga positivo
-             pass
-        
-        # Siempre buscar positivo por regex
-        for pattern in patterns.get("positive", []):
-            if re.search(pattern, text_lower, re.IGNORECASE):
-                is_positive = True
-                detected = True
-                break
+        # Buscar positivo SOLO si no hubo match negativo explícito
+        if not neg_matched:
+            for pattern in patterns.get("positive", []):
+                if re.search(pattern, text_lower, re.IGNORECASE):
+                    is_positive = True
+                    detected = True
+                    break
 
         # Caso especial para duración
         if symptom == "duracion":
-            dur_match = re.search(r'(\d+)\s*(días?|semanas?|meses?|años?)', text_lower)
+            dur_match = re.search(r'(\d+|unos?|unas?)\s*(días?|semanas?|meses?|años?)', text_lower)
             if dur_match:
+                val_str = dur_match.group(1)
+                val_int = int(val_str) if val_str.isdigit() else None
                 results[symptom] = {
                     "detected": True,
                     "positive": True,
-                    "duration": {"value": int(dur_match.group(1)), "unit": dur_match.group(2)}
+                    "duration": {"value": val_int or val_str, "unit": dur_match.group(2)}
                 }
                 continue # Ya procesado
             elif is_positive is None:

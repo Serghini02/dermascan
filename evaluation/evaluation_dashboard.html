@@ -280,6 +280,7 @@
                         <th>ID</th>
                         <th>Pregunta</th>
                         <th>Texto del Paciente</th>
+                        <th>Respuesta del Modelo</th>
                         <th>Resultado</th>
                         <th>Detalle</th>
                     </tr>
@@ -338,10 +339,12 @@
         // Exactitud global (si no viene en el JSON raíz, la calculamos)
         let total = 0, correct = 0;
         data.cases.forEach(c => {
-            total += c.evaluated;
-            correct += c.correct;
+            if (c.evaluated > 0) {
+                total += c.evaluated;
+                correct += c.correct;
+            }
         });
-        const acc = (correct / total * 100).toFixed(1);
+        const acc = (total > 0 ? (correct / total * 100) : 0).toFixed(1);
         document.getElementById('stat-accuracy').innerText = acc + '%';
         document.getElementById('stat-f1').innerText = data.metrics.__macro__.f1.toFixed(3);
 
@@ -412,6 +415,7 @@
                     <td style="font-weight:700">${c.id}</td>
                     <td style="color:var(--secondary)">${c.question.toUpperCase()}</td>
                     <td style="font-style:italic; color: #cbd5e1">"${c.text}"</td>
+                    <td style="font-weight: 500; color: var(--primary)">${c.model_response || 'N/A'}</td>
                     <td><span class="tag ${isOk ? 'tag-success' : 'tag-danger'}">${isOk ? 'CORRECTO' : 'ERROR'}</span></td>
                     <td style="font-size: 0.8rem; color: var(--text-dim)">
                         ${Object.keys(c.per_symptom).filter(s => c.per_symptom[s].correct === false).map(s => `${s}: exp ${c.per_symptom[s].expected} got ${c.per_symptom[s].got}`).join(', ') || '-'}

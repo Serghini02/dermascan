@@ -352,7 +352,7 @@ def run_optimization():
 
 @app.route('/api/rl/evaluate', methods=['GET'])
 def rl_evaluate():
-    return jsonify(evaluate_agent(num_episodes=20, db_path=DATABASE_PATH))
+    return jsonify(evaluate_agent(num_episodes=50, db_path=DATABASE_PATH))
 
 
 @app.route('/api/rl/status', methods=['GET'])

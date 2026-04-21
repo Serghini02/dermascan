@@ -803,7 +803,25 @@ async function loadAgentStatus() {
                 <div class="eval-item"><span class="eval-item-label">Steps totales</span><span class="eval-item-value">${d.steps_done.toLocaleString()}</span></div>
                 <div class="eval-item"><span class="eval-item-label">Episodios</span><span class="eval-item-value">${d.episodes_trained.toLocaleString()}</span></div>
             </div>`;
-    } catch (e) { document.getElementById('agentStatusContent').textContent = 'Error al conectar con el servidor'; }
+
+        // Si tenemos datos del último entrenamiento, rellenamos el panel de evaluación real
+        if (d.last_training) {
+            const lt = d.last_training;
+            const evalContent = document.getElementById('evalContent');
+            if (evalContent) {
+                evalContent.innerHTML = `
+                    <div class="eval-grid">
+                        <div class="eval-item"><span class="eval-item-label">Accuracy (BD)</span><span class="eval-item-value good">${lt.final_avg_reward.toFixed(1)}%</span></div>
+                        <div class="eval-item"><span class="eval-item-label">Best Avg Reward</span><span class="eval-item-value good">${lt.best_avg_reward_50.toFixed(1)}</span></div>
+                        <div class="eval-item"><span class="eval-item-label">Épocas s/BD</span><span class="eval-item-value">${lt.epochs_over_db}x</span></div>
+                        <div class="eval-item"><span class="eval-item-label">Total Pacientes</span><span class="eval-item-value">${lt.total_patients_in_db.toLocaleString()}</span></div>
+                    </div>
+                    <div style="font-size:0.75rem; color:var(--text-secondary); margin-top:10px; text-align:right">
+                        * Datos reales del último entrenamiento guardado.
+                    </div>`;
+            }
+        }
+    } catch (e) { console.error(e); document.getElementById('agentStatusContent').textContent = 'Error al conectar con el servidor'; }
 }
 
 // =============================================================================

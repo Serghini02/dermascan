@@ -182,14 +182,17 @@ def _asymmetry(contour, mask):
 
     cx, cy = int(M["m10"] / M["m00"]), int(M["m01"] / M["m00"])
     
+    # Suavizado extra de la máscara para evitar que el ruido de pixelado cuente como asimetría
+    mask_smooth = cv2.medianBlur(mask, 7)
+    
     # Recortar el lunar centrado en su centroide para evitar errores de alineación
     x, y, w, h = cv2.boundingRect(contour)
     dist_x = max(cx - x, x + w - cx)
     dist_y = max(cy - y, y + h - cy)
     
-    y1, y2 = max(0, cy - dist_y), min(mask.shape[0], cy + dist_y)
-    x1, x2 = max(0, cx - dist_x), min(mask.shape[1], cx + dist_x)
-    centered_mask = mask[y1:y2, x1:x2]
+    y1, y2 = max(0, cy - dist_y), min(mask_smooth.shape[0], cy + dist_y)
+    x1, x2 = max(0, cx - dist_x), min(mask_smooth.shape[1], cx + dist_x)
+    centered_mask = mask_smooth[y1:y2, x1:x2]
     
     if centered_mask.size == 0:
         return 0.0, "Error en centrado"
@@ -208,9 +211,11 @@ def _asymmetry(contour, mask):
     v_xor = cv2.bitwise_xor(centered_mask, v_flip)
     v_asym = np.sum(v_xor > 0) / max(np.sum(centered_mask > 0), 1)
     
-    # En melanomas la asimetría de forma es clave. Multiplicamos para subir sensibilidad.
+    # Ajuste de escala: un lunar normal suele tener ~20% mismatch por su naturaleza orgánica.
+    # Restamos este umbral base.
     asym_val = (h_asym + v_asym) / 2
-    score = min(asym_val * 2.5, 1.0)
+    score = max(0.0, (asym_val - 0.22) / 0.5) 
+    score = min(score, 1.0)
     
     detail = f"Asim H: {h_asym:.0%} | V: {v_asym:.0%}"
     return float(score), detail
@@ -251,16 +256,16 @@ def _border_irregularity(contour):
     solidity = area / hull_area if hull_area > 0 else 1.0
 
     # Score combinado de irregularidad
-    # Un RDV > 0.12 o Circularidad < 0.7 suele indicar bordes malignos
-    irreg_rdv = min(rdv / 0.22, 1.0)
-    irreg_circ = max(0.0, (0.78 - circularity) / 0.78)
+    # Umbralizado: ignoramos pequeñas variaciones orgánicas
+    irreg_rdv = max(0.0, (rdv - 0.08) / 0.15)
+    irreg_circ = max(0.0, (0.76 - circularity) / 0.76)
     irreg_sol = max(0.0, (0.94 - solidity) / 0.94)
     
-    # Potenciar fuertemente el score si hay RDV alto o baja solidez
-    score = (irreg_rdv * 0.45 + irreg_circ * 0.35 + irreg_sol * 0.20)
-    score = min(score * 2.2, 1.0) # Escalado clínico agresivo
+    # Pesos equilibrados: RDV sigue siendo importante pero no dominante
+    score = (irreg_rdv * 0.4 + irreg_circ * 0.3 + irreg_sol * 0.3)
+    score = min(score * 1.4, 1.0) # Escalado más justo (v12.4)
 
-    detail = f"RDV: {rdv:.2f} | Circularidad: {circularity:.2f}"
+    detail = f"Serrado (RDV): {rdv:.2f} | Circularidad: {circularity:.2f}"
     return float(score), detail
 
 

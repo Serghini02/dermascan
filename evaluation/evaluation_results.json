@@ -1,53 +1,53 @@
 {
-  "total_cases": 36,
+  "total_cases": 106,
   "metrics": {
     "dolor": {
-      "TP": 4,
+      "TP": 12,
       "FP": 0,
       "FN": 0,
-      "TN": 4,
+      "TN": 10,
       "precision": 1.0,
       "recall": 1.0,
       "f1": 1.0
     },
     "picor": {
-      "TP": 4,
+      "TP": 11,
       "FP": 0,
       "FN": 0,
-      "TN": 4,
+      "TN": 9,
       "precision": 1.0,
       "recall": 1.0,
       "f1": 1.0
     },
     "tamaño": {
-      "TP": 6,
+      "TP": 11,
       "FP": 0,
-      "FN": 0,
-      "TN": 3,
+      "FN": 1,
+      "TN": 8,
       "precision": 1.0,
-      "recall": 1.0,
-      "f1": 1.0
+      "recall": 0.917,
+      "f1": 0.957
     },
     "sangrado": {
-      "TP": 4,
+      "TP": 9,
       "FP": 0,
-      "FN": 0,
-      "TN": 2,
+      "FN": 1,
+      "TN": 8,
       "precision": 1.0,
-      "recall": 1.0,
-      "f1": 1.0
+      "recall": 0.9,
+      "f1": 0.947
     },
     "color": {
-      "TP": 4,
+      "TP": 11,
       "FP": 0,
       "FN": 0,
-      "TN": 2,
+      "TN": 7,
       "precision": 1.0,
       "recall": 1.0,
       "f1": 1.0
     },
     "duracion": {
-      "TP": 7,
+      "TP": 18,
       "FP": 0,
       "FN": 0,
       "TN": 0,
@@ -57,8 +57,8 @@
     },
     "__macro__": {
       "precision": 1.0,
-      "recall": 1.0,
-      "f1": 1.0
+      "recall": 0.97,
+      "f1": 0.984
     }
   },
   "cases": [
@@ -69,35 +69,10 @@
       "extracted": {
         "dolor": {
           "detected": true,
-          "positive": true,
-          "duration": null
-        },
-        "picor": {
-          "detected": false,
-          "positive": null,
-          "duration": null
-        },
-        "tamaño": {
-          "detected": false,
-          "positive": null,
-          "duration": null
-        },
-        "sangrado": {
-          "detected": false,
-          "positive": null,
-          "duration": null
-        },
-        "color": {
-          "detected": false,
-          "positive": null,
-          "duration": null
-        },
-        "duracion": {
-          "detected": false,
-          "positive": null,
-          "duration": null
+          "positive": true
         }
       },
+      "model_response": "dolor: Si",
       "per_symptom": {
         "dolor": {
           "expected": true,
@@ -146,36 +121,11 @@
       "text": "No me duele para nada, no siento nada.",
       "extracted": {
         "dolor": {
-          "detected": false,
-          "positive": false,
-          "duration": null
-        },
-        "picor": {
-          "detected": false,
-          "positive": null,
-          "duration": null
-        },
-        "tamaño": {
-          "detected": false,
-          "positive": null,
-          "duration": null
-        },
-        "sangrado": {
-          "detected": false,
-          "positive": null,
-          "duration": null
-        },
-        "color": {
-          "detected": false,
-          "positive": null,
-          "duration": null
-        },
-        "duracion": {
-          "detected": false,
-          "positive": null,
-          "duration": null
+          "detected": true,
+          "positive": false
         }
       },
+      "model_response": "dolor: No",
       "per_symptom": {
         "dolor": {
           "expected": false,
@@ -225,35 +175,10 @@
       "extracted": {
         "dolor": {
           "detected": true,
-          "positive": true,
-          "duration": null
-        },
-        "picor": {
-          "detected": false,
-          "positive": null,
-          "duration": null
-        },
-        "tamaño": {
-          "detected": false,
-          "positive": null,
-          "duration": null
-        },
-        "sangrado": {
-          "detected": false,
-          "positive": null,
-          "duration": null
-        },
-        "color": {
-          "detected": false,
-          "positive": null,
-          "duration": null
-        },
-        "duracion": {
-          "detected": false,
-          "positive": null,
-          "duration": null
+          "positive": true
         }
       },
+      "model_response": "dolor: Si",
       "per_symptom": {
         "dolor": {
           "expected": true,
@@ -303,35 +228,10 @@
       "extracted": {
         "dolor": {
           "detected": true,
-          "positive": true,
-          "duration": null
-        },
-        "picor": {
-          "detected": false,
-          "positive": null,
-          "duration": null
-        },
-        "tamaño": {
-          "detected": false,
-          "positive": null,
-          "duration": null
-        },
-        "sangrado": {
-          "detected": false,
-          "positive": null,
-          "duration": null
-        },
-        "color": {
-          "detected": false,
-          "positive": null,
-          "duration": null
-        },
-        "duracion": {
-          "detected": false,
-          "positive": null,
-          "duration": null
+          "positive": true
         }
       },
+      "model_response": "dolor: Si",
       "per_symptom": {
         "dolor": {
           "expected": true,
@@ -380,36 +280,594 @@
       "text": "No siento nada especial, está ahí pero sin dolor.",
       "extracted": {
         "dolor": {
-          "detected": false,
-          "positive": false,
-          "duration": null
-        },
-        "picor": {
-          "detected": false,
-          "positive": null,
-          "duration": null
-        },
-        "tamaño": {
-          "detected": false,
-          "positive": null,
-          "duration": null
-        },
-        "sangrado": {
-          "detected": false,
-          "positive": null,
-          "duration": null
-        },
-        "color": {
-          "detected": false,
-          "positive": null,
-          "duration": null
-        },
-        "duracion": {
-          "detected": false,
-          "positive": null,
-          "duration": null
+          "detected": true,
+          "positive": false
         }
       },
+      "model_response": "dolor: No",
+      "per_symptom": {
+        "dolor": {
+          "expected": false,
+          "got": false,
+          "correct": true,
+          "skip": false
+        },
+        "picor": {
+          "expected": null,
+          "got": null,
+          "correct": null,
+          "skip": true
+        },
+        "tamaño": {
+          "expected": null,
+          "got": null,
+          "correct": null,
+          "skip": true
+        },
+        "sangrado": {
+          "expected": null,
+          "got": null,
+          "correct": null,
+          "skip": true
+        },
+        "color": {
+          "expected": null,
+          "got": null,
+          "correct": null,
+          "skip": true
+        },
+        "duracion": {
+          "expected": null,
+          "got": null,
+          "correct": null,
+          "skip": true
+        }
+      },
+      "case_accuracy": 1.0,
+      "evaluated": 1,
+      "correct": 1
+    },
+    {
+      "id": "D-06",
+      "question": "dolor",
+      "text": "Para nada, no hay ningún tipo de dolor.",
+      "extracted": {
+        "dolor": {
+          "detected": true,
+          "positive": false
+        }
+      },
+      "model_response": "dolor: No",
+      "per_symptom": {
+        "dolor": {
+          "expected": false,
+          "got": false,
+          "correct": true,
+          "skip": false
+        },
+        "picor": {
+          "expected": null,
+          "got": null,
+          "correct": null,
+          "skip": true
+        },
+        "tamaño": {
+          "expected": null,
+          "got": null,
+          "correct": null,
+          "skip": true
+        },
+        "sangrado": {
+          "expected": null,
+          "got": null,
+          "correct": null,
+          "skip": true
+        },
+        "color": {
+          "expected": null,
+          "got": null,
+          "correct": null,
+          "skip": true
+        },
+        "duracion": {
+          "expected": null,
+          "got": null,
+          "correct": null,
+          "skip": true
+        }
+      },
+      "case_accuracy": 1.0,
+      "evaluated": 1,
+      "correct": 1
+    },
+    {
+      "id": "D-07",
+      "question": "dolor",
+      "text": "Me escuece un poco si me pongo ropa ajustada.",
+      "extracted": {
+        "dolor": {
+          "detected": true,
+          "positive": true
+        }
+      },
+      "model_response": "dolor: Si",
+      "per_symptom": {
+        "dolor": {
+          "expected": true,
+          "got": true,
+          "correct": true,
+          "skip": false
+        },
+        "picor": {
+          "expected": null,
+          "got": null,
+          "correct": null,
+          "skip": true
+        },
+        "tamaño": {
+          "expected": null,
+          "got": null,
+          "correct": null,
+          "skip": true
+        },
+        "sangrado": {
+          "expected": null,
+          "got": null,
+          "correct": null,
+          "skip": true
+        },
+        "color": {
+          "expected": null,
+          "got": null,
+          "correct": null,
+          "skip": true
+        },
+        "duracion": {
+          "expected": null,
+          "got": null,
+          "correct": null,
+          "skip": true
+        }
+      },
+      "case_accuracy": 1.0,
+      "evaluated": 1,
+      "correct": 1
+    },
+    {
+      "id": "D-08",
+      "question": "dolor",
+      "text": "Me da pinchazos fuertes de vez en cuando.",
+      "extracted": {
+        "dolor": {
+          "detected": true,
+          "positive": true
+        }
+      },
+      "model_response": "dolor: Si",
+      "per_symptom": {
+        "dolor": {
+          "expected": true,
+          "got": true,
+          "correct": true,
+          "skip": false
+        },
+        "picor": {
+          "expected": null,
+          "got": null,
+          "correct": null,
+          "skip": true
+        },
+        "tamaño": {
+          "expected": null,
+          "got": null,
+          "correct": null,
+          "skip": true
+        },
+        "sangrado": {
+          "expected": null,
+          "got": null,
+          "correct": null,
+          "skip": true
+        },
+        "color": {
+          "expected": null,
+          "got": null,
+          "correct": null,
+          "skip": true
+        },
+        "duracion": {
+          "expected": null,
+          "got": null,
+          "correct": null,
+          "skip": true
+        }
+      },
+      "case_accuracy": 1.0,
+      "evaluated": 1,
+      "correct": 1
+    },
+    {
+      "id": "D-09",
+      "question": "dolor",
+      "text": "No experimento ninguna molestia al presionar.",
+      "extracted": {
+        "dolor": {
+          "detected": true,
+          "positive": false
+        }
+      },
+      "model_response": "dolor: No",
+      "per_symptom": {
+        "dolor": {
+          "expected": false,
+          "got": false,
+          "correct": true,
+          "skip": false
+        },
+        "picor": {
+          "expected": null,
+          "got": null,
+          "correct": null,
+          "skip": true
+        },
+        "tamaño": {
+          "expected": null,
+          "got": null,
+          "correct": null,
+          "skip": true
+        },
+        "sangrado": {
+          "expected": null,
+          "got": null,
+          "correct": null,
+          "skip": true
+        },
+        "color": {
+          "expected": null,
+          "got": null,
+          "correct": null,
+          "skip": true
+        },
+        "duracion": {
+          "expected": null,
+          "got": null,
+          "correct": null,
+          "skip": true
+        }
+      },
+      "case_accuracy": 1.0,
+      "evaluated": 1,
+      "correct": 1
+    },
+    {
+      "id": "D-10",
+      "question": "dolor",
+      "text": "Es un dolor sordo pero constante.",
+      "extracted": {
+        "dolor": {
+          "detected": true,
+          "positive": true
+        }
+      },
+      "model_response": "dolor: Si",
+      "per_symptom": {
+        "dolor": {
+          "expected": true,
+          "got": true,
+          "correct": true,
+          "skip": false
+        },
+        "picor": {
+          "expected": null,
+          "got": null,
+          "correct": null,
+          "skip": true
+        },
+        "tamaño": {
+          "expected": null,
+          "got": null,
+          "correct": null,
+          "skip": true
+        },
+        "sangrado": {
+          "expected": null,
+          "got": null,
+          "correct": null,
+          "skip": true
+        },
+        "color": {
+          "expected": null,
+          "got": null,
+          "correct": null,
+          "skip": true
+        },
+        "duracion": {
+          "expected": null,
+          "got": null,
+          "correct": null,
+          "skip": true
+        }
+      },
+      "case_accuracy": 1.0,
+      "evaluated": 1,
+      "correct": 1
+    },
+    {
+      "id": "D-11",
+      "question": "dolor",
+      "text": "Siento como que me quema la piel por esa zona.",
+      "extracted": {
+        "dolor": {
+          "detected": true,
+          "positive": true
+        }
+      },
+      "model_response": "dolor: Si",
+      "per_symptom": {
+        "dolor": {
+          "expected": true,
+          "got": true,
+          "correct": true,
+          "skip": false
+        },
+        "picor": {
+          "expected": null,
+          "got": null,
+          "correct": null,
+          "skip": true
+        },
+        "tamaño": {
+          "expected": null,
+          "got": null,
+          "correct": null,
+          "skip": true
+        },
+        "sangrado": {
+          "expected": null,
+          "got": null,
+          "correct": null,
+          "skip": true
+        },
+        "color": {
+          "expected": null,
+          "got": null,
+          "correct": null,
+          "skip": true
+        },
+        "duracion": {
+          "expected": null,
+          "got": null,
+          "correct": null,
+          "skip": true
+        }
+      },
+      "case_accuracy": 1.0,
+      "evaluated": 1,
+      "correct": 1
+    },
+    {
+      "id": "D-12",
+      "question": "dolor",
+      "text": "Afortunadamente no me duele nada.",
+      "extracted": {
+        "dolor": {
+          "detected": true,
+          "positive": false
+        }
+      },
+      "model_response": "dolor: No",
+      "per_symptom": {
+        "dolor": {
+          "expected": false,
+          "got": false,
+          "correct": true,
+          "skip": false
+        },
+        "picor": {
+          "expected": null,
+          "got": null,
+          "correct": null,
+          "skip": true
+        },
+        "tamaño": {
+          "expected": null,
+          "got": null,
+          "correct": null,
+          "skip": true
+        },
+        "sangrado": {
+          "expected": null,
+          "got": null,
+          "correct": null,
+          "skip": true
+        },
+        "color": {
+          "expected": null,
+          "got": null,
+          "correct": null,
+          "skip": true
+        },
+        "duracion": {
+          "expected": null,
+          "got": null,
+          "correct": null,
+          "skip": true
+        }
+      },
+      "case_accuracy": 1.0,
+      "evaluated": 1,
+      "correct": 1
+    },
+    {
+      "id": "D-13",
+      "question": "dolor",
+      "text": "Está muy sensible al roce, duele.",
+      "extracted": {
+        "dolor": {
+          "detected": true,
+          "positive": true
+        }
+      },
+      "model_response": "dolor: Si",
+      "per_symptom": {
+        "dolor": {
+          "expected": true,
+          "got": true,
+          "correct": true,
+          "skip": false
+        },
+        "picor": {
+          "expected": null,
+          "got": null,
+          "correct": null,
+          "skip": true
+        },
+        "tamaño": {
+          "expected": null,
+          "got": null,
+          "correct": null,
+          "skip": true
+        },
+        "sangrado": {
+          "expected": null,
+          "got": null,
+          "correct": null,
+          "skip": true
+        },
+        "color": {
+          "expected": null,
+          "got": null,
+          "correct": null,
+          "skip": true
+        },
+        "duracion": {
+          "expected": null,
+          "got": null,
+          "correct": null,
+          "skip": true
+        }
+      },
+      "case_accuracy": 1.0,
+      "evaluated": 1,
+      "correct": 1
+    },
+    {
+      "id": "D-14",
+      "question": "dolor",
+      "text": "No me ha dolido nunca, ni siquiera al principio.",
+      "extracted": {
+        "dolor": {
+          "detected": true,
+          "positive": false
+        }
+      },
+      "model_response": "dolor: No",
+      "per_symptom": {
+        "dolor": {
+          "expected": false,
+          "got": false,
+          "correct": true,
+          "skip": false
+        },
+        "picor": {
+          "expected": null,
+          "got": null,
+          "correct": null,
+          "skip": true
+        },
+        "tamaño": {
+          "expected": null,
+          "got": null,
+          "correct": null,
+          "skip": true
+        },
+        "sangrado": {
+          "expected": null,
+          "got": null,
+          "correct": null,
+          "skip": true
+        },
+        "color": {
+          "expected": null,
+          "got": null,
+          "correct": null,
+          "skip": true
+        },
+        "duracion": {
+          "expected": null,
+          "got": null,
+          "correct": null,
+          "skip": true
+        }
+      },
+      "case_accuracy": 1.0,
+      "evaluated": 1,
+      "correct": 1
+    },
+    {
+      "id": "D-15",
+      "question": "dolor",
+      "text": "Siento un latido doloroso en el lunar.",
+      "extracted": {
+        "dolor": {
+          "detected": true,
+          "positive": true
+        }
+      },
+      "model_response": "dolor: Si",
+      "per_symptom": {
+        "dolor": {
+          "expected": true,
+          "got": true,
+          "correct": true,
+          "skip": false
+        },
+        "picor": {
+          "expected": null,
+          "got": null,
+          "correct": null,
+          "skip": true
+        },
+        "tamaño": {
+          "expected": null,
+          "got": null,
+          "correct": null,
+          "skip": true
+        },
+        "sangrado": {
+          "expected": null,
+          "got": null,
+          "correct": null,
+          "skip": true
+        },
+        "color": {
+          "expected": null,
+          "got": null,
+          "correct": null,
+          "skip": true
+        },
+        "duracion": {
+          "expected": null,
+          "got": null,
+          "correct": null,
+          "skip": true
+        }
+      },
+      "case_accuracy": 1.0,
+      "evaluated": 1,
+      "correct": 1
+    },
+    {
+      "id": "D-16",
+      "question": "dolor",
+      "text": "Nada de dolor, cero molestias.",
+      "extracted": {
+        "dolor": {
+          "detected": true,
+          "positive": false
+        }
+      },
+      "model_response": "dolor: No",
       "per_symptom": {
         "dolor": {
           "expected": false,
@@ -457,41 +915,20 @@
       "question": "picor",
       "text": "Sí, me pica mucho, especialmente por la tarde.",
       "extracted": {
-        "dolor": {
-          "detected": false,
-          "positive": null,
-          "duration": null
-        },
         "picor": {
           "detected": true,
-          "positive": true,
-          "duration": null
+          "positive": true
         },
-        "tamaño": {
-          "detected": false,
-          "positive": null,
-          "duration": null
-        },
-        "sangrado": {
-          "detected": false,
-          "positive": null,
-          "duration": null
-        },
-        "color": {
-          "detected": false,
-          "positive": null,
-          "duration": null
-        },
-        "duracion": {
-          "detected": false,
-          "positive": null,
-          "duration": null
+        "dolor": {
+          "detected": true,
+          "positive": true
         }
       },
+      "model_response": "picor: Si, dolor: Si",
       "per_symptom": {
         "dolor": {
           "expected": null,
-          "got": null,
+          "got": true,
           "correct": null,
           "skip": true
         },
@@ -535,37 +972,12 @@
       "question": "picor",
       "text": "No me pica, nunca he notado picor.",
       "extracted": {
-        "dolor": {
-          "detected": false,
-          "positive": null,
-          "duration": null
-        },
         "picor": {
-          "detected": false,
-          "positive": false,
-          "duration": null
-        },
-        "tamaño": {
-          "detected": false,
-          "positive": null,
-          "duration": null
-        },
-        "sangrado": {
-          "detected": false,
-          "positive": null,
-          "duration": null
-        },
-        "color": {
-          "detected": false,
-          "positive": null,
-          "duration": null
-        },
-        "duracion": {
-          "detected": false,
-          "positive": null,
-          "duration": null
+          "detected": true,
+          "positive": false
         }
       },
+      "model_response": "picor: No",
       "per_symptom": {
         "dolor": {
           "expected": null,
@@ -613,37 +1025,16 @@
       "question": "picor",
       "text": "Tengo comezón de vez en cuando, no siempre.",
       "extracted": {
-        "dolor": {
-          "detected": false,
-          "positive": null,
-          "duration": null
-        },
         "picor": {
           "detected": true,
-          "positive": true,
-          "duration": null
-        },
-        "tamaño": {
-          "detected": false,
-          "positive": null,
-          "duration": null
-        },
-        "sangrado": {
-          "detected": false,
-          "positive": null,
-          "duration": null
-        },
-        "color": {
-          "detected": false,
-          "positive": null,
-          "duration": null
+          "positive": true
         },
         "duracion": {
           "detected": true,
-          "positive": true,
-          "duration": null
+          "positive": true
         }
       },
+      "model_response": "picor: Si, duracion: Si",
       "per_symptom": {
         "dolor": {
           "expected": null,
@@ -691,37 +1082,12 @@
       "question": "picor",
       "text": "A veces pica un poco, sí.",
       "extracted": {
-        "dolor": {
-          "detected": false,
-          "positive": null,
-          "duration": null
-        },
         "picor": {
           "detected": true,
-          "positive": true,
-          "duration": null
-        },
-        "tamaño": {
-          "detected": false,
-          "positive": null,
-          "duration": null
-        },
-        "sangrado": {
-          "detected": false,
-          "positive": null,
-          "duration": null
-        },
-        "color": {
-          "detected": false,
-          "positive": null,
-          "duration": null
-        },
-        "duracion": {
-          "detected": false,
-          "positive": null,
-          "duration": null
+          "positive": true
         }
       },
+      "model_response": "picor: Si",
       "per_symptom": {
         "dolor": {
           "expected": null,
@@ -769,37 +1135,12 @@
       "question": "picor",
       "text": "Sin picor, todo normal en esa zona.",
       "extracted": {
-        "dolor": {
-          "detected": false,
-          "positive": null,
-          "duration": null
-        },
         "picor": {
-          "detected": false,
-          "positive": false,
-          "duration": null
-        },
-        "tamaño": {
-          "detected": false,
-          "positive": null,
-          "duration": null
-        },
-        "sangrado": {
-          "detected": false,
-          "positive": null,
-          "duration": null
-        },
-        "color": {
-          "detected": false,
-          "positive": null,
-          "duration": null
-        },
-        "duracion": {
-          "detected": false,
-          "positive": null,
-          "duration": null
+          "detected": true,
+          "positive": false
         }
       },
+      "model_response": "picor: No",
       "per_symptom": {
         "dolor": {
           "expected": null,
@@ -843,41 +1184,623 @@
       "correct": 1
     },
     {
+      "id": "P-06",
+      "question": "picor",
+      "text": "La verdad es que no me rasco nunca, no pica.",
+      "extracted": {
+        "picor": {
+          "detected": true,
+          "positive": false
+        }
+      },
+      "model_response": "picor: No",
+      "per_symptom": {
+        "dolor": {
+          "expected": null,
+          "got": null,
+          "correct": null,
+          "skip": true
+        },
+        "picor": {
+          "expected": false,
+          "got": false,
+          "correct": true,
+          "skip": false
+        },
+        "tamaño": {
+          "expected": null,
+          "got": null,
+          "correct": null,
+          "skip": true
+        },
+        "sangrado": {
+          "expected": null,
+          "got": null,
+          "correct": null,
+          "skip": true
+        },
+        "color": {
+          "expected": null,
+          "got": null,
+          "correct": null,
+          "skip": true
+        },
+        "duracion": {
+          "expected": null,
+          "got": null,
+          "correct": null,
+          "skip": true
+        }
+      },
+      "case_accuracy": 1.0,
+      "evaluated": 1,
+      "correct": 1
+    },
+    {
+      "id": "P-07",
+      "question": "picor",
+      "text": "Siento una necesidad imperiosa de rascarme.",
+      "extracted": {
+        "picor": {
+          "detected": true,
+          "positive": true
+        }
+      },
+      "model_response": "picor: Si",
+      "per_symptom": {
+        "dolor": {
+          "expected": null,
+          "got": null,
+          "correct": null,
+          "skip": true
+        },
+        "picor": {
+          "expected": true,
+          "got": true,
+          "correct": true,
+          "skip": false
+        },
+        "tamaño": {
+          "expected": null,
+          "got": null,
+          "correct": null,
+          "skip": true
+        },
+        "sangrado": {
+          "expected": null,
+          "got": null,
+          "correct": null,
+          "skip": true
+        },
+        "color": {
+          "expected": null,
+          "got": null,
+          "correct": null,
+          "skip": true
+        },
+        "duracion": {
+          "expected": null,
+          "got": null,
+          "correct": null,
+          "skip": true
+        }
+      },
+      "case_accuracy": 1.0,
+      "evaluated": 1,
+      "correct": 1
+    },
+    {
+      "id": "P-08",
+      "question": "picor",
+      "text": "No tengo comezón, está muy tranquila la zona.",
+      "extracted": {
+        "picor": {
+          "detected": true,
+          "positive": false
+        }
+      },
+      "model_response": "picor: No",
+      "per_symptom": {
+        "dolor": {
+          "expected": null,
+          "got": null,
+          "correct": null,
+          "skip": true
+        },
+        "picor": {
+          "expected": false,
+          "got": false,
+          "correct": true,
+          "skip": false
+        },
+        "tamaño": {
+          "expected": null,
+          "got": null,
+          "correct": null,
+          "skip": true
+        },
+        "sangrado": {
+          "expected": null,
+          "got": null,
+          "correct": null,
+          "skip": true
+        },
+        "color": {
+          "expected": null,
+          "got": null,
+          "correct": null,
+          "skip": true
+        },
+        "duracion": {
+          "expected": null,
+          "got": null,
+          "correct": null,
+          "skip": true
+        }
+      },
+      "case_accuracy": 1.0,
+      "evaluated": 1,
+      "correct": 1
+    },
+    {
+      "id": "P-09",
+      "question": "picor",
+      "text": "Me pica horrores por la noche.",
+      "extracted": {
+        "picor": {
+          "detected": true,
+          "positive": true
+        }
+      },
+      "model_response": "picor: Si",
+      "per_symptom": {
+        "dolor": {
+          "expected": null,
+          "got": null,
+          "correct": null,
+          "skip": true
+        },
+        "picor": {
+          "expected": true,
+          "got": true,
+          "correct": true,
+          "skip": false
+        },
+        "tamaño": {
+          "expected": null,
+          "got": null,
+          "correct": null,
+          "skip": true
+        },
+        "sangrado": {
+          "expected": null,
+          "got": null,
+          "correct": null,
+          "skip": true
+        },
+        "color": {
+          "expected": null,
+          "got": null,
+          "correct": null,
+          "skip": true
+        },
+        "duracion": {
+          "expected": null,
+          "got": null,
+          "correct": null,
+          "skip": true
+        }
+      },
+      "case_accuracy": 1.0,
+      "evaluated": 1,
+      "correct": 1
+    },
+    {
+      "id": "P-10",
+      "question": "picor",
+      "text": "Es un picor insoportable a ratos.",
+      "extracted": {
+        "picor": {
+          "detected": true,
+          "positive": true
+        }
+      },
+      "model_response": "picor: Si",
+      "per_symptom": {
+        "dolor": {
+          "expected": null,
+          "got": null,
+          "correct": null,
+          "skip": true
+        },
+        "picor": {
+          "expected": true,
+          "got": true,
+          "correct": true,
+          "skip": false
+        },
+        "tamaño": {
+          "expected": null,
+          "got": null,
+          "correct": null,
+          "skip": true
+        },
+        "sangrado": {
+          "expected": null,
+          "got": null,
+          "correct": null,
+          "skip": true
+        },
+        "color": {
+          "expected": null,
+          "got": null,
+          "correct": null,
+          "skip": true
+        },
+        "duracion": {
+          "expected": null,
+          "got": null,
+          "correct": null,
+          "skip": true
+        }
+      },
+      "case_accuracy": 1.0,
+      "evaluated": 1,
+      "correct": 1
+    },
+    {
+      "id": "P-11",
+      "question": "picor",
+      "text": "No noto que me pique en absoluto.",
+      "extracted": {
+        "picor": {
+          "detected": true,
+          "positive": false
+        },
+        "tamaño": {
+          "detected": true,
+          "positive": false
+        },
+        "sangrado": {
+          "detected": true,
+          "positive": false
+        },
+        "color": {
+          "detected": true,
+          "positive": false
+        }
+      },
+      "model_response": "picor: No, tamaño: No, sangrado: No, color: No",
+      "per_symptom": {
+        "dolor": {
+          "expected": null,
+          "got": null,
+          "correct": null,
+          "skip": true
+        },
+        "picor": {
+          "expected": false,
+          "got": false,
+          "correct": true,
+          "skip": false
+        },
+        "tamaño": {
+          "expected": null,
+          "got": false,
+          "correct": null,
+          "skip": true
+        },
+        "sangrado": {
+          "expected": null,
+          "got": false,
+          "correct": null,
+          "skip": true
+        },
+        "color": {
+          "expected": null,
+          "got": false,
+          "correct": null,
+          "skip": true
+        },
+        "duracion": {
+          "expected": null,
+          "got": null,
+          "correct": null,
+          "skip": true
+        }
+      },
+      "case_accuracy": 1.0,
+      "evaluated": 1,
+      "correct": 1
+    },
+    {
+      "id": "P-12",
+      "question": "picor",
+      "text": "Siento como hormigueo y picor constante.",
+      "extracted": {
+        "picor": {
+          "detected": true,
+          "positive": true
+        }
+      },
+      "model_response": "picor: Si",
+      "per_symptom": {
+        "dolor": {
+          "expected": null,
+          "got": null,
+          "correct": null,
+          "skip": true
+        },
+        "picor": {
+          "expected": true,
+          "got": true,
+          "correct": true,
+          "skip": false
+        },
+        "tamaño": {
+          "expected": null,
+          "got": null,
+          "correct": null,
+          "skip": true
+        },
+        "sangrado": {
+          "expected": null,
+          "got": null,
+          "correct": null,
+          "skip": true
+        },
+        "color": {
+          "expected": null,
+          "got": null,
+          "correct": null,
+          "skip": true
+        },
+        "duracion": {
+          "expected": null,
+          "got": null,
+          "correct": null,
+          "skip": true
+        }
+      },
+      "case_accuracy": 1.0,
+      "evaluated": 1,
+      "correct": 1
+    },
+    {
+      "id": "P-13",
+      "question": "picor",
+      "text": "Sin rastro de picor ni escozor.",
+      "extracted": {
+        "dolor": {
+          "detected": true,
+          "positive": true
+        },
+        "picor": {
+          "detected": true,
+          "positive": false
+        }
+      },
+      "model_response": "dolor: Si, picor: No",
+      "per_symptom": {
+        "dolor": {
+          "expected": null,
+          "got": true,
+          "correct": null,
+          "skip": true
+        },
+        "picor": {
+          "expected": false,
+          "got": false,
+          "correct": true,
+          "skip": false
+        },
+        "tamaño": {
+          "expected": null,
+          "got": null,
+          "correct": null,
+          "skip": true
+        },
+        "sangrado": {
+          "expected": null,
+          "got": null,
+          "correct": null,
+          "skip": true
+        },
+        "color": {
+          "expected": null,
+          "got": null,
+          "correct": null,
+          "skip": true
+        },
+        "duracion": {
+          "expected": null,
+          "got": null,
+          "correct": null,
+          "skip": true
+        }
+      },
+      "case_accuracy": 1.0,
+      "evaluated": 1,
+      "correct": 1
+    },
+    {
+      "id": "P-14",
+      "question": "picor",
+      "text": "Me dan ganas de rascarme todo el tiempo.",
+      "extracted": {
+        "picor": {
+          "detected": true,
+          "positive": true
+        },
+        "duracion": {
+          "detected": true,
+          "positive": true
+        }
+      },
+      "model_response": "picor: Si, duracion: Si",
+      "per_symptom": {
+        "dolor": {
+          "expected": null,
+          "got": null,
+          "correct": null,
+          "skip": true
+        },
+        "picor": {
+          "expected": true,
+          "got": true,
+          "correct": true,
+          "skip": false
+        },
+        "tamaño": {
+          "expected": null,
+          "got": null,
+          "correct": null,
+          "skip": true
+        },
+        "sangrado": {
+          "expected": null,
+          "got": null,
+          "correct": null,
+          "skip": true
+        },
+        "color": {
+          "expected": null,
+          "got": null,
+          "correct": null,
+          "skip": true
+        },
+        "duracion": {
+          "expected": null,
+          "got": true,
+          "correct": null,
+          "skip": true
+        }
+      },
+      "case_accuracy": 1.0,
+      "evaluated": 1,
+      "correct": 1
+    },
+    {
+      "id": "P-15",
+      "question": "picor",
+      "text": "Ni me pica ni me molesta.",
+      "extracted": {
+        "dolor": {
+          "detected": true,
+          "positive": true
+        },
+        "picor": {
+          "detected": true,
+          "positive": false
+        }
+      },
+      "model_response": "dolor: Si, picor: No",
+      "per_symptom": {
+        "dolor": {
+          "expected": null,
+          "got": true,
+          "correct": null,
+          "skip": true
+        },
+        "picor": {
+          "expected": false,
+          "got": false,
+          "correct": true,
+          "skip": false
+        },
+        "tamaño": {
+          "expected": null,
+          "got": null,
+          "correct": null,
+          "skip": true
+        },
+        "sangrado": {
+          "expected": null,
+          "got": null,
+          "correct": null,
+          "skip": true
+        },
+        "color": {
+          "expected": null,
+          "got": null,
+          "correct": null,
+          "skip": true
+        },
+        "duracion": {
+          "expected": null,
+          "got": null,
+          "correct": null,
+          "skip": true
+        }
+      },
+      "case_accuracy": 1.0,
+      "evaluated": 1,
+      "correct": 1
+    },
+    {
+      "id": "P-16",
+      "question": "picor",
+      "text": "Me pica bastante si sudo mucho.",
+      "extracted": {
+        "picor": {
+          "detected": true,
+          "positive": true
+        }
+      },
+      "model_response": "picor: Si",
+      "per_symptom": {
+        "dolor": {
+          "expected": null,
+          "got": null,
+          "correct": null,
+          "skip": true
+        },
+        "picor": {
+          "expected": true,
+          "got": true,
+          "correct": true,
+          "skip": false
+        },
+        "tamaño": {
+          "expected": null,
+          "got": null,
+          "correct": null,
+          "skip": true
+        },
+        "sangrado": {
+          "expected": null,
+          "got": null,
+          "correct": null,
+          "skip": true
+        },
+        "color": {
+          "expected": null,
+          "got": null,
+          "correct": null,
+          "skip": true
+        },
+        "duracion": {
+          "expected": null,
+          "got": null,
+          "correct": null,
+          "skip": true
+        }
+      },
+      "case_accuracy": 1.0,
+      "evaluated": 1,
+      "correct": 1
+    },
+    {
       "id": "T-01",
       "question": "tamaño",
       "text": "Sí, ha crecido bastante en los últimos meses.",
       "extracted": {
-        "dolor": {
-          "detected": false,
-          "positive": null,
-          "duration": null
-        },
-        "picor": {
-          "detected": false,
-          "positive": null,
-          "duration": null
-        },
         "tamaño": {
           "detected": true,
-          "positive": true,
-          "duration": null
-        },
-        "sangrado": {
-          "detected": false,
-          "positive": null,
-          "duration": null
-        },
-        "color": {
-          "detected": false,
-          "positive": null,
-          "duration": null
-        },
-        "duracion": {
-          "detected": false,
-          "positive": null,
-          "duration": null
+          "positive": true
         }
       },
+      "model_response": "tamaño: Si",
       "per_symptom": {
         "dolor": {
           "expected": null,
@@ -925,37 +1848,16 @@
       "question": "tamaño",
       "text": "No, sigue siendo del mismo tamaño que siempre.",
       "extracted": {
-        "dolor": {
-          "detected": false,
-          "positive": null,
-          "duration": null
-        },
-        "picor": {
-          "detected": false,
-          "positive": null,
-          "duration": null
-        },
         "tamaño": {
-          "detected": false,
-          "positive": false,
-          "duration": null
-        },
-        "sangrado": {
-          "detected": false,
-          "positive": null,
-          "duration": null
-        },
-        "color": {
-          "detected": false,
-          "positive": null,
-          "duration": null
+          "detected": true,
+          "positive": false
         },
         "duracion": {
           "detected": true,
-          "positive": true,
-          "duration": null
+          "positive": true
         }
       },
+      "model_response": "tamaño: No, duracion: Si",
       "per_symptom": {
         "dolor": {
           "expected": null,
@@ -1003,37 +1905,12 @@
       "question": "tamaño",
       "text": "Me parece que está más grande que antes.",
       "extracted": {
-        "dolor": {
-          "detected": false,
-          "positive": null,
-          "duration": null
-        },
-        "picor": {
-          "detected": false,
-          "positive": null,
-          "duration": null
-        },
         "tamaño": {
           "detected": true,
-          "positive": true,
-          "duration": null
-        },
-        "sangrado": {
-          "detected": false,
-          "positive": null,
-          "duration": null
-        },
-        "color": {
-          "detected": false,
-          "positive": null,
-          "duration": null
-        },
-        "duracion": {
-          "detected": false,
-          "positive": null,
-          "duration": null
+          "positive": true
         }
       },
+      "model_response": "tamaño: Si",
       "per_symptom": {
         "dolor": {
           "expected": null,
@@ -1081,37 +1958,20 @@
       "question": "tamaño",
       "text": "Creo que no ha cambiado, lo veo igual que siempre.",
       "extracted": {
-        "dolor": {
-          "detected": false,
-          "positive": null,
-          "duration": null
-        },
-        "picor": {
-          "detected": false,
-          "positive": null,
-          "duration": null
-        },
         "tamaño": {
-          "detected": false,
-          "positive": false,
-          "duration": null
-        },
-        "sangrado": {
-          "detected": false,
-          "positive": null,
-          "duration": null
+          "detected": true,
+          "positive": false
         },
         "color": {
-          "detected": false,
-          "positive": false,
-          "duration": null
+          "detected": true,
+          "positive": false
         },
         "duracion": {
           "detected": true,
-          "positive": true,
-          "duration": null
+          "positive": true
         }
       },
+      "model_response": "tamaño: No, color: No, duracion: Si",
       "per_symptom": {
         "dolor": {
           "expected": null,
@@ -1159,37 +2019,16 @@
       "question": "tamaño",
       "text": "Ha aumentado de tamaño notablemente este año.",
       "extracted": {
-        "dolor": {
-          "detected": false,
-          "positive": null,
-          "duration": null
-        },
-        "picor": {
-          "detected": false,
-          "positive": null,
-          "duration": null
-        },
         "tamaño": {
           "detected": true,
-          "positive": true,
-          "duration": null
-        },
-        "sangrado": {
-          "detected": false,
-          "positive": null,
-          "duration": null
-        },
-        "color": {
-          "detected": false,
-          "positive": null,
-          "duration": null
+          "positive": true
         },
         "duracion": {
-          "detected": false,
-          "positive": null,
-          "duration": null
+          "detected": true,
+          "positive": true
         }
       },
+      "model_response": "tamaño: Si, duracion: Si",
       "per_symptom": {
         "dolor": {
           "expected": null,
@@ -1223,7 +2062,7 @@
         },
         "duracion": {
           "expected": null,
-          "got": null,
+          "got": true,
           "correct": null,
           "skip": true
         }
@@ -1237,37 +2076,12 @@
       "question": "tamaño",
       "text": "Era más pequeño cuando era niño, ahora es más grande.",
       "extracted": {
-        "dolor": {
-          "detected": false,
-          "positive": null,
-          "duration": null
-        },
-        "picor": {
-          "detected": false,
-          "positive": null,
-          "duration": null
-        },
         "tamaño": {
           "detected": true,
-          "positive": true,
-          "duration": null
-        },
-        "sangrado": {
-          "detected": false,
-          "positive": null,
-          "duration": null
-        },
-        "color": {
-          "detected": false,
-          "positive": null,
-          "duration": null
-        },
-        "duracion": {
-          "detected": false,
-          "positive": null,
-          "duration": null
+          "positive": true
         }
       },
+      "model_response": "tamaño: Si",
       "per_symptom": {
         "dolor": {
           "expected": null,
@@ -1311,41 +2125,578 @@
       "correct": 1
     },
     {
+      "id": "T-07",
+      "question": "tamaño",
+      "text": "Es idéntico a cuando me salió, no ha variado nada.",
+      "extracted": {
+        "tamaño": {
+          "detected": true,
+          "positive": false
+        },
+        "color": {
+          "detected": true,
+          "positive": false
+        },
+        "duracion": {
+          "detected": true,
+          "positive": true
+        }
+      },
+      "model_response": "tamaño: No, color: No, duracion: Si",
+      "per_symptom": {
+        "dolor": {
+          "expected": null,
+          "got": null,
+          "correct": null,
+          "skip": true
+        },
+        "picor": {
+          "expected": null,
+          "got": null,
+          "correct": null,
+          "skip": true
+        },
+        "tamaño": {
+          "expected": false,
+          "got": false,
+          "correct": true,
+          "skip": false
+        },
+        "sangrado": {
+          "expected": null,
+          "got": null,
+          "correct": null,
+          "skip": true
+        },
+        "color": {
+          "expected": null,
+          "got": false,
+          "correct": null,
+          "skip": true
+        },
+        "duracion": {
+          "expected": null,
+          "got": true,
+          "correct": null,
+          "skip": true
+        }
+      },
+      "case_accuracy": 1.0,
+      "evaluated": 1,
+      "correct": 1
+    },
+    {
+      "id": "T-08",
+      "question": "tamaño",
+      "text": "Se ha vuelto mucho más abultado y grande.",
+      "extracted": {
+        "tamaño": {
+          "detected": true,
+          "positive": true
+        }
+      },
+      "model_response": "tamaño: Si",
+      "per_symptom": {
+        "dolor": {
+          "expected": null,
+          "got": null,
+          "correct": null,
+          "skip": true
+        },
+        "picor": {
+          "expected": null,
+          "got": null,
+          "correct": null,
+          "skip": true
+        },
+        "tamaño": {
+          "expected": true,
+          "got": true,
+          "correct": true,
+          "skip": false
+        },
+        "sangrado": {
+          "expected": null,
+          "got": null,
+          "correct": null,
+          "skip": true
+        },
+        "color": {
+          "expected": null,
+          "got": null,
+          "correct": null,
+          "skip": true
+        },
+        "duracion": {
+          "expected": null,
+          "got": null,
+          "correct": null,
+          "skip": true
+        }
+      },
+      "case_accuracy": 1.0,
+      "evaluated": 1,
+      "correct": 1
+    },
+    {
+      "id": "T-09",
+      "question": "tamaño",
+      "text": "Sigue exactamente igual que hace diez años.",
+      "extracted": {
+        "tamaño": {
+          "detected": true,
+          "positive": false
+        },
+        "duracion": {
+          "detected": true,
+          "positive": true
+        }
+      },
+      "model_response": "tamaño: No, duracion: Si",
+      "per_symptom": {
+        "dolor": {
+          "expected": null,
+          "got": null,
+          "correct": null,
+          "skip": true
+        },
+        "picor": {
+          "expected": null,
+          "got": null,
+          "correct": null,
+          "skip": true
+        },
+        "tamaño": {
+          "expected": false,
+          "got": false,
+          "correct": true,
+          "skip": false
+        },
+        "sangrado": {
+          "expected": null,
+          "got": null,
+          "correct": null,
+          "skip": true
+        },
+        "color": {
+          "expected": null,
+          "got": null,
+          "correct": null,
+          "skip": true
+        },
+        "duracion": {
+          "expected": null,
+          "got": true,
+          "correct": null,
+          "skip": true
+        }
+      },
+      "case_accuracy": 1.0,
+      "evaluated": 1,
+      "correct": 1
+    },
+    {
+      "id": "T-10",
+      "question": "tamaño",
+      "text": "Noto que los bordes se están expandiendo.",
+      "extracted": {
+        "tamaño": {
+          "detected": true,
+          "positive": true
+        }
+      },
+      "model_response": "tamaño: Si",
+      "per_symptom": {
+        "dolor": {
+          "expected": null,
+          "got": null,
+          "correct": null,
+          "skip": true
+        },
+        "picor": {
+          "expected": null,
+          "got": null,
+          "correct": null,
+          "skip": true
+        },
+        "tamaño": {
+          "expected": true,
+          "got": true,
+          "correct": true,
+          "skip": false
+        },
+        "sangrado": {
+          "expected": null,
+          "got": null,
+          "correct": null,
+          "skip": true
+        },
+        "color": {
+          "expected": null,
+          "got": null,
+          "correct": null,
+          "skip": true
+        },
+        "duracion": {
+          "expected": null,
+          "got": null,
+          "correct": null,
+          "skip": true
+        }
+      },
+      "case_accuracy": 1.0,
+      "evaluated": 1,
+      "correct": 1
+    },
+    {
+      "id": "T-11",
+      "question": "tamaño",
+      "text": "Ha duplicado su tamaño en apenas un mes.",
+      "extracted": {
+        "tamaño": {
+          "detected": true,
+          "positive": true
+        },
+        "duracion": {
+          "detected": true,
+          "positive": true
+        }
+      },
+      "model_response": "tamaño: Si, duracion: Si",
+      "per_symptom": {
+        "dolor": {
+          "expected": null,
+          "got": null,
+          "correct": null,
+          "skip": true
+        },
+        "picor": {
+          "expected": null,
+          "got": null,
+          "correct": null,
+          "skip": true
+        },
+        "tamaño": {
+          "expected": true,
+          "got": true,
+          "correct": true,
+          "skip": false
+        },
+        "sangrado": {
+          "expected": null,
+          "got": null,
+          "correct": null,
+          "skip": true
+        },
+        "color": {
+          "expected": null,
+          "got": null,
+          "correct": null,
+          "skip": true
+        },
+        "duracion": {
+          "expected": null,
+          "got": true,
+          "correct": null,
+          "skip": true
+        }
+      },
+      "case_accuracy": 1.0,
+      "evaluated": 1,
+      "correct": 1
+    },
+    {
+      "id": "T-12",
+      "question": "tamaño",
+      "text": "No ha crecido ni un milímetro, está igual.",
+      "extracted": {
+        "tamaño": {
+          "detected": true,
+          "positive": false
+        }
+      },
+      "model_response": "tamaño: No",
+      "per_symptom": {
+        "dolor": {
+          "expected": null,
+          "got": null,
+          "correct": null,
+          "skip": true
+        },
+        "picor": {
+          "expected": null,
+          "got": null,
+          "correct": null,
+          "skip": true
+        },
+        "tamaño": {
+          "expected": false,
+          "got": false,
+          "correct": true,
+          "skip": false
+        },
+        "sangrado": {
+          "expected": null,
+          "got": null,
+          "correct": null,
+          "skip": true
+        },
+        "color": {
+          "expected": null,
+          "got": null,
+          "correct": null,
+          "skip": true
+        },
+        "duracion": {
+          "expected": null,
+          "got": null,
+          "correct": null,
+          "skip": true
+        }
+      },
+      "case_accuracy": 1.0,
+      "evaluated": 1,
+      "correct": 1
+    },
+    {
+      "id": "T-13",
+      "question": "tamaño",
+      "text": "Antes era un punto pequeño y ahora es una mancha.",
+      "extracted": {
+        "tamaño": {
+          "detected": true,
+          "positive": true
+        },
+        "sangrado": {
+          "detected": true,
+          "positive": true
+        }
+      },
+      "model_response": "tamaño: Si, sangrado: Si",
+      "per_symptom": {
+        "dolor": {
+          "expected": null,
+          "got": null,
+          "correct": null,
+          "skip": true
+        },
+        "picor": {
+          "expected": null,
+          "got": null,
+          "correct": null,
+          "skip": true
+        },
+        "tamaño": {
+          "expected": true,
+          "got": true,
+          "correct": true,
+          "skip": false
+        },
+        "sangrado": {
+          "expected": null,
+          "got": true,
+          "correct": null,
+          "skip": true
+        },
+        "color": {
+          "expected": null,
+          "got": null,
+          "correct": null,
+          "skip": true
+        },
+        "duracion": {
+          "expected": null,
+          "got": null,
+          "correct": null,
+          "skip": true
+        }
+      },
+      "case_accuracy": 1.0,
+      "evaluated": 1,
+      "correct": 1
+    },
+    {
+      "id": "T-14",
+      "question": "tamaño",
+      "text": "Su tamaño es constante, no ha variado nada.",
+      "extracted": {
+        "tamaño": {
+          "detected": true,
+          "positive": false
+        },
+        "duracion": {
+          "detected": true,
+          "positive": true
+        }
+      },
+      "model_response": "tamaño: No, duracion: Si",
+      "per_symptom": {
+        "dolor": {
+          "expected": null,
+          "got": null,
+          "correct": null,
+          "skip": true
+        },
+        "picor": {
+          "expected": null,
+          "got": null,
+          "correct": null,
+          "skip": true
+        },
+        "tamaño": {
+          "expected": false,
+          "got": false,
+          "correct": true,
+          "skip": false
+        },
+        "sangrado": {
+          "expected": null,
+          "got": null,
+          "correct": null,
+          "skip": true
+        },
+        "color": {
+          "expected": null,
+          "got": null,
+          "correct": null,
+          "skip": true
+        },
+        "duracion": {
+          "expected": null,
+          "got": true,
+          "correct": null,
+          "skip": true
+        }
+      },
+      "case_accuracy": 1.0,
+      "evaluated": 1,
+      "correct": 1
+    },
+    {
+      "id": "T-15",
+      "question": "tamaño",
+      "text": "Creo que está creciendo hacia fuera.",
+      "extracted": {
+        "tamaño": {
+          "detected": true,
+          "positive": true
+        }
+      },
+      "model_response": "tamaño: Si",
+      "per_symptom": {
+        "dolor": {
+          "expected": null,
+          "got": null,
+          "correct": null,
+          "skip": true
+        },
+        "picor": {
+          "expected": null,
+          "got": null,
+          "correct": null,
+          "skip": true
+        },
+        "tamaño": {
+          "expected": true,
+          "got": true,
+          "correct": true,
+          "skip": false
+        },
+        "sangrado": {
+          "expected": null,
+          "got": null,
+          "correct": null,
+          "skip": true
+        },
+        "color": {
+          "expected": null,
+          "got": null,
+          "correct": null,
+          "skip": true
+        },
+        "duracion": {
+          "expected": null,
+          "got": null,
+          "correct": null,
+          "skip": true
+        }
+      },
+      "case_accuracy": 1.0,
+      "evaluated": 1,
+      "correct": 1
+    },
+    {
+      "id": "T-16",
+      "question": "tamaño",
+      "text": "No ha cambiado de forma ni de tamaño.",
+      "extracted": {
+        "tamaño": {
+          "detected": true,
+          "positive": false
+        },
+        "color": {
+          "detected": true,
+          "positive": false
+        },
+        "duracion": {
+          "detected": true,
+          "positive": true
+        }
+      },
+      "model_response": "tamaño: No, color: No, duracion: Si",
+      "per_symptom": {
+        "dolor": {
+          "expected": null,
+          "got": null,
+          "correct": null,
+          "skip": true
+        },
+        "picor": {
+          "expected": null,
+          "got": null,
+          "correct": null,
+          "skip": true
+        },
+        "tamaño": {
+          "expected": false,
+          "got": false,
+          "correct": true,
+          "skip": false
+        },
+        "sangrado": {
+          "expected": null,
+          "got": null,
+          "correct": null,
+          "skip": true
+        },
+        "color": {
+          "expected": null,
+          "got": false,
+          "correct": null,
+          "skip": true
+        },
+        "duracion": {
+          "expected": null,
+          "got": true,
+          "correct": null,
+          "skip": true
+        }
+      },
+      "case_accuracy": 1.0,
+      "evaluated": 1,
+      "correct": 1
+    },
+    {
       "id": "S-01",
       "question": "sangrado",
       "text": "Sí, una vez sangró cuando me lo rasqué.",
       "extracted": {
-        "dolor": {
-          "detected": false,
-          "positive": null,
-          "duration": null
-        },
-        "picor": {
-          "detected": false,
-          "positive": null,
-          "duration": null
-        },
-        "tamaño": {
-          "detected": false,
-          "positive": null,
-          "duration": null
-        },
         "sangrado": {
           "detected": true,
-          "positive": true,
-          "duration": null
-        },
-        "color": {
-          "detected": false,
-          "positive": null,
-          "duration": null
-        },
-        "duracion": {
-          "detected": false,
-          "positive": null,
-          "duration": null
+          "positive": true
         }
       },
+      "model_response": "sangrado: Si",
       "per_symptom": {
         "dolor": {
           "expected": null,
@@ -1393,37 +2744,12 @@
       "question": "sangrado",
       "text": "No, nunca ha sangrado en ningún momento.",
       "extracted": {
-        "dolor": {
-          "detected": false,
-          "positive": null,
-          "duration": null
-        },
-        "picor": {
-          "detected": false,
-          "positive": null,
-          "duration": null
-        },
-        "tamaño": {
-          "detected": false,
-          "positive": null,
-          "duration": null
-        },
         "sangrado": {
-          "detected": false,
-          "positive": false,
-          "duration": null
-        },
-        "color": {
-          "detected": false,
-          "positive": null,
-          "duration": null
-        },
-        "duracion": {
-          "detected": false,
-          "positive": null,
-          "duration": null
+          "detected": true,
+          "positive": false
         }
       },
+      "model_response": "sangrado: No",
       "per_symptom": {
         "dolor": {
           "expected": null,
@@ -1471,37 +2797,16 @@
       "question": "sangrado",
       "text": "A veces sangra un poquito, sin causa aparente.",
       "extracted": {
-        "dolor": {
-          "detected": false,
-          "positive": null,
-          "duration": null
-        },
-        "picor": {
-          "detected": false,
-          "positive": null,
-          "duration": null
-        },
-        "tamaño": {
-          "detected": false,
-          "positive": null,
-          "duration": null
-        },
         "sangrado": {
           "detected": true,
-          "positive": true,
-          "duration": null
+          "positive": true
         },
-        "color": {
-          "detected": false,
-          "positive": null,
-          "duration": null
-        },
-        "duracion": {
-          "detected": false,
-          "positive": null,
-          "duration": null
+        "picor": {
+          "detected": true,
+          "positive": true
         }
       },
+      "model_response": "sangrado: Si, picor: Si",
       "per_symptom": {
         "dolor": {
           "expected": null,
@@ -1511,7 +2816,7 @@
         },
         "picor": {
           "expected": null,
-          "got": null,
+          "got": true,
           "correct": null,
           "skip": true
         },
@@ -1549,37 +2854,12 @@
       "question": "sangrado",
       "text": "No ningún sangrado, está completamente seco.",
       "extracted": {
-        "dolor": {
-          "detected": false,
-          "positive": null,
-          "duration": null
-        },
-        "picor": {
-          "detected": false,
-          "positive": null,
-          "duration": null
-        },
-        "tamaño": {
-          "detected": false,
-          "positive": null,
-          "duration": null
-        },
         "sangrado": {
-          "detected": false,
-          "positive": false,
-          "duration": null
-        },
-        "color": {
-          "detected": false,
-          "positive": null,
-          "duration": null
-        },
-        "duracion": {
-          "detected": false,
-          "positive": null,
-          "duration": null
+          "detected": true,
+          "positive": false
         }
       },
+      "model_response": "sangrado: No",
       "per_symptom": {
         "dolor": {
           "expected": null,
@@ -1627,37 +2907,16 @@
       "question": "sangrado",
       "text": "Ha sangrado dos veces estas semanas.",
       "extracted": {
-        "dolor": {
-          "detected": false,
-          "positive": null,
-          "duration": null
-        },
-        "picor": {
-          "detected": false,
-          "positive": null,
-          "duration": null
-        },
-        "tamaño": {
-          "detected": false,
-          "positive": null,
-          "duration": null
-        },
         "sangrado": {
           "detected": true,
-          "positive": true,
-          "duration": null
-        },
-        "color": {
-          "detected": false,
-          "positive": null,
-          "duration": null
+          "positive": true
         },
         "duracion": {
           "detected": true,
-          "positive": true,
-          "duration": null
+          "positive": true
         }
       },
+      "model_response": "sangrado: Si, duracion: Si",
       "per_symptom": {
         "dolor": {
           "expected": null,
@@ -1701,41 +2960,607 @@
       "correct": 2
     },
     {
+      "id": "S-06",
+      "question": "sangrado",
+      "text": "Jamás ha soltado sangre ni nada parecido.",
+      "extracted": {
+        "sangrado": {
+          "detected": true,
+          "positive": false
+        }
+      },
+      "model_response": "sangrado: No",
+      "per_symptom": {
+        "dolor": {
+          "expected": null,
+          "got": null,
+          "correct": null,
+          "skip": true
+        },
+        "picor": {
+          "expected": null,
+          "got": null,
+          "correct": null,
+          "skip": true
+        },
+        "tamaño": {
+          "expected": null,
+          "got": null,
+          "correct": null,
+          "skip": true
+        },
+        "sangrado": {
+          "expected": false,
+          "got": false,
+          "correct": true,
+          "skip": false
+        },
+        "color": {
+          "expected": null,
+          "got": null,
+          "correct": null,
+          "skip": true
+        },
+        "duracion": {
+          "expected": null,
+          "got": null,
+          "correct": null,
+          "skip": true
+        }
+      },
+      "case_accuracy": 1.0,
+      "evaluated": 1,
+      "correct": 1
+    },
+    {
+      "id": "S-07",
+      "question": "sangrado",
+      "text": "Amanecí con la sábana manchada de sangre.",
+      "extracted": {
+        "tamaño": {
+          "detected": true,
+          "positive": true
+        },
+        "sangrado": {
+          "detected": true,
+          "positive": true
+        }
+      },
+      "model_response": "tamaño: Si, sangrado: Si",
+      "per_symptom": {
+        "dolor": {
+          "expected": null,
+          "got": null,
+          "correct": null,
+          "skip": true
+        },
+        "picor": {
+          "expected": null,
+          "got": null,
+          "correct": null,
+          "skip": true
+        },
+        "tamaño": {
+          "expected": null,
+          "got": true,
+          "correct": null,
+          "skip": true
+        },
+        "sangrado": {
+          "expected": true,
+          "got": true,
+          "correct": true,
+          "skip": false
+        },
+        "color": {
+          "expected": null,
+          "got": null,
+          "correct": null,
+          "skip": true
+        },
+        "duracion": {
+          "expected": null,
+          "got": null,
+          "correct": null,
+          "skip": true
+        }
+      },
+      "case_accuracy": 1.0,
+      "evaluated": 1,
+      "correct": 1
+    },
+    {
+      "id": "S-08",
+      "question": "sangrado",
+      "text": "No sangra aunque se me enganche con la ropa.",
+      "extracted": {
+        "sangrado": {
+          "detected": true,
+          "positive": false
+        }
+      },
+      "model_response": "sangrado: No",
+      "per_symptom": {
+        "dolor": {
+          "expected": null,
+          "got": null,
+          "correct": null,
+          "skip": true
+        },
+        "picor": {
+          "expected": null,
+          "got": null,
+          "correct": null,
+          "skip": true
+        },
+        "tamaño": {
+          "expected": null,
+          "got": null,
+          "correct": null,
+          "skip": true
+        },
+        "sangrado": {
+          "expected": false,
+          "got": false,
+          "correct": true,
+          "skip": false
+        },
+        "color": {
+          "expected": null,
+          "got": null,
+          "correct": null,
+          "skip": true
+        },
+        "duracion": {
+          "expected": null,
+          "got": null,
+          "correct": null,
+          "skip": true
+        }
+      },
+      "case_accuracy": 1.0,
+      "evaluated": 1,
+      "correct": 1
+    },
+    {
+      "id": "S-09",
+      "question": "sangrado",
+      "text": "Suelto un poco de líquido con sangre a veces.",
+      "extracted": {
+        "sangrado": {
+          "detected": true,
+          "positive": true
+        }
+      },
+      "model_response": "sangrado: Si",
+      "per_symptom": {
+        "dolor": {
+          "expected": null,
+          "got": null,
+          "correct": null,
+          "skip": true
+        },
+        "picor": {
+          "expected": null,
+          "got": null,
+          "correct": null,
+          "skip": true
+        },
+        "tamaño": {
+          "expected": null,
+          "got": null,
+          "correct": null,
+          "skip": true
+        },
+        "sangrado": {
+          "expected": true,
+          "got": true,
+          "correct": true,
+          "skip": false
+        },
+        "color": {
+          "expected": null,
+          "got": null,
+          "correct": null,
+          "skip": true
+        },
+        "duracion": {
+          "expected": null,
+          "got": null,
+          "correct": null,
+          "skip": true
+        }
+      },
+      "case_accuracy": 1.0,
+      "evaluated": 1,
+      "correct": 1
+    },
+    {
+      "id": "S-10",
+      "question": "sangrado",
+      "text": "Se le ha hecho una costra de sangre.",
+      "extracted": {
+        "sangrado": {
+          "detected": true,
+          "positive": true
+        }
+      },
+      "model_response": "sangrado: Si",
+      "per_symptom": {
+        "dolor": {
+          "expected": null,
+          "got": null,
+          "correct": null,
+          "skip": true
+        },
+        "picor": {
+          "expected": null,
+          "got": null,
+          "correct": null,
+          "skip": true
+        },
+        "tamaño": {
+          "expected": null,
+          "got": null,
+          "correct": null,
+          "skip": true
+        },
+        "sangrado": {
+          "expected": true,
+          "got": true,
+          "correct": true,
+          "skip": false
+        },
+        "color": {
+          "expected": null,
+          "got": null,
+          "correct": null,
+          "skip": true
+        },
+        "duracion": {
+          "expected": null,
+          "got": null,
+          "correct": null,
+          "skip": true
+        }
+      },
+      "case_accuracy": 1.0,
+      "evaluated": 1,
+      "correct": 1
+    },
+    {
+      "id": "S-11",
+      "question": "sangrado",
+      "text": "Ningún episodio de sangrado hasta la fecha.",
+      "extracted": {
+        "sangrado": {
+          "detected": true,
+          "positive": false
+        }
+      },
+      "model_response": "sangrado: No",
+      "per_symptom": {
+        "dolor": {
+          "expected": null,
+          "got": null,
+          "correct": null,
+          "skip": true
+        },
+        "picor": {
+          "expected": null,
+          "got": null,
+          "correct": null,
+          "skip": true
+        },
+        "tamaño": {
+          "expected": null,
+          "got": null,
+          "correct": null,
+          "skip": true
+        },
+        "sangrado": {
+          "expected": false,
+          "got": false,
+          "correct": true,
+          "skip": false
+        },
+        "color": {
+          "expected": null,
+          "got": null,
+          "correct": null,
+          "skip": true
+        },
+        "duracion": {
+          "expected": null,
+          "got": null,
+          "correct": null,
+          "skip": true
+        }
+      },
+      "case_accuracy": 1.0,
+      "evaluated": 1,
+      "correct": 1
+    },
+    {
+      "id": "S-12",
+      "question": "sangrado",
+      "text": "Sangró espontáneamente ayer por la tarde.",
+      "extracted": {
+        "dolor": {
+          "detected": true,
+          "positive": true
+        },
+        "sangrado": {
+          "detected": true,
+          "positive": true
+        }
+      },
+      "model_response": "dolor: Si, sangrado: Si",
+      "per_symptom": {
+        "dolor": {
+          "expected": null,
+          "got": true,
+          "correct": null,
+          "skip": true
+        },
+        "picor": {
+          "expected": null,
+          "got": null,
+          "correct": null,
+          "skip": true
+        },
+        "tamaño": {
+          "expected": null,
+          "got": null,
+          "correct": null,
+          "skip": true
+        },
+        "sangrado": {
+          "expected": true,
+          "got": true,
+          "correct": true,
+          "skip": false
+        },
+        "color": {
+          "expected": null,
+          "got": null,
+          "correct": null,
+          "skip": true
+        },
+        "duracion": {
+          "expected": null,
+          "got": null,
+          "correct": null,
+          "skip": true
+        }
+      },
+      "case_accuracy": 1.0,
+      "evaluated": 1,
+      "correct": 1
+    },
+    {
+      "id": "S-13",
+      "question": "sangrado",
+      "text": "Está muy seco, no sangra nunca.",
+      "extracted": {
+        "sangrado": {
+          "detected": true,
+          "positive": false
+        }
+      },
+      "model_response": "sangrado: No",
+      "per_symptom": {
+        "dolor": {
+          "expected": null,
+          "got": null,
+          "correct": null,
+          "skip": true
+        },
+        "picor": {
+          "expected": null,
+          "got": null,
+          "correct": null,
+          "skip": true
+        },
+        "tamaño": {
+          "expected": null,
+          "got": null,
+          "correct": null,
+          "skip": true
+        },
+        "sangrado": {
+          "expected": false,
+          "got": false,
+          "correct": true,
+          "skip": false
+        },
+        "color": {
+          "expected": null,
+          "got": null,
+          "correct": null,
+          "skip": true
+        },
+        "duracion": {
+          "expected": null,
+          "got": null,
+          "correct": null,
+          "skip": true
+        }
+      },
+      "case_accuracy": 1.0,
+      "evaluated": 1,
+      "correct": 1
+    },
+    {
+      "id": "S-14",
+      "question": "sangrado",
+      "text": "Noto que supura un poco de sangre.",
+      "extracted": {
+        "sangrado": {
+          "detected": true,
+          "positive": false
+        }
+      },
+      "model_response": "sangrado: No",
+      "per_symptom": {
+        "dolor": {
+          "expected": null,
+          "got": null,
+          "correct": null,
+          "skip": true
+        },
+        "picor": {
+          "expected": null,
+          "got": null,
+          "correct": null,
+          "skip": true
+        },
+        "tamaño": {
+          "expected": null,
+          "got": null,
+          "correct": null,
+          "skip": true
+        },
+        "sangrado": {
+          "expected": true,
+          "got": false,
+          "correct": false,
+          "skip": false
+        },
+        "color": {
+          "expected": null,
+          "got": null,
+          "correct": null,
+          "skip": true
+        },
+        "duracion": {
+          "expected": null,
+          "got": null,
+          "correct": null,
+          "skip": true
+        }
+      },
+      "case_accuracy": 0.0,
+      "evaluated": 1,
+      "correct": 0
+    },
+    {
+      "id": "S-15",
+      "question": "sangrado",
+      "text": "No ha sangrado ni una sola vez.",
+      "extracted": {
+        "sangrado": {
+          "detected": true,
+          "positive": false
+        }
+      },
+      "model_response": "sangrado: No",
+      "per_symptom": {
+        "dolor": {
+          "expected": null,
+          "got": null,
+          "correct": null,
+          "skip": true
+        },
+        "picor": {
+          "expected": null,
+          "got": null,
+          "correct": null,
+          "skip": true
+        },
+        "tamaño": {
+          "expected": null,
+          "got": null,
+          "correct": null,
+          "skip": true
+        },
+        "sangrado": {
+          "expected": false,
+          "got": false,
+          "correct": true,
+          "skip": false
+        },
+        "color": {
+          "expected": null,
+          "got": null,
+          "correct": null,
+          "skip": true
+        },
+        "duracion": {
+          "expected": null,
+          "got": null,
+          "correct": null,
+          "skip": true
+        }
+      },
+      "case_accuracy": 1.0,
+      "evaluated": 1,
+      "correct": 1
+    },
+    {
+      "id": "S-16",
+      "question": "sangrado",
+      "text": "A veces mancho el apósito de sangre.",
+      "extracted": {
+        "sangrado": {
+          "detected": true,
+          "positive": true
+        }
+      },
+      "model_response": "sangrado: Si",
+      "per_symptom": {
+        "dolor": {
+          "expected": null,
+          "got": null,
+          "correct": null,
+          "skip": true
+        },
+        "picor": {
+          "expected": null,
+          "got": null,
+          "correct": null,
+          "skip": true
+        },
+        "tamaño": {
+          "expected": null,
+          "got": null,
+          "correct": null,
+          "skip": true
+        },
+        "sangrado": {
+          "expected": true,
+          "got": true,
+          "correct": true,
+          "skip": false
+        },
+        "color": {
+          "expected": null,
+          "got": null,
+          "correct": null,
+          "skip": true
+        },
+        "duracion": {
+          "expected": null,
+          "got": null,
+          "correct": null,
+          "skip": true
+        }
+      },
+      "case_accuracy": 1.0,
+      "evaluated": 1,
+      "correct": 1
+    },
+    {
       "id": "C-01",
       "question": "color",
       "text": "Sí, se ha oscurecido bastante, antes era más claro.",
       "extracted": {
-        "dolor": {
-          "detected": false,
-          "positive": null,
-          "duration": null
-        },
-        "picor": {
-          "detected": false,
-          "positive": null,
-          "duration": null
-        },
-        "tamaño": {
-          "detected": false,
-          "positive": null,
-          "duration": null
-        },
-        "sangrado": {
-          "detected": false,
-          "positive": null,
-          "duration": null
-        },
         "color": {
           "detected": true,
-          "positive": true,
-          "duration": null
-        },
-        "duracion": {
-          "detected": false,
-          "positive": null,
-          "duration": null
+          "positive": true
         }
       },
+      "model_response": "color: Si",
       "per_symptom": {
         "dolor": {
           "expected": null,
@@ -1783,37 +3608,16 @@
       "question": "color",
       "text": "No ha cambiado de color, sigue igual.",
       "extracted": {
-        "dolor": {
-          "detected": false,
-          "positive": null,
-          "duration": null
-        },
-        "picor": {
-          "detected": false,
-          "positive": null,
-          "duration": null
+        "color": {
+          "detected": true,
+          "positive": false
         },
         "tamaño": {
-          "detected": false,
-          "positive": false,
-          "duration": null
-        },
-        "sangrado": {
-          "detected": false,
-          "positive": null,
-          "duration": null
-        },
-        "color": {
-          "detected": false,
-          "positive": false,
-          "duration": null
-        },
-        "duracion": {
-          "detected": false,
-          "positive": null,
-          "duration": null
+          "detected": true,
+          "positive": false
         }
       },
+      "model_response": "color: No, tamaño: No",
       "per_symptom": {
         "dolor": {
           "expected": null,
@@ -1861,37 +3665,20 @@
       "question": "color",
       "text": "Tiene colores diferentes, como manchas dentro del lunar.",
       "extracted": {
-        "dolor": {
-          "detected": false,
-          "positive": null,
-          "duration": null
-        },
-        "picor": {
-          "detected": false,
-          "positive": null,
-          "duration": null
-        },
         "tamaño": {
-          "detected": false,
-          "positive": null,
-          "duration": null
+          "detected": true,
+          "positive": true
         },
         "sangrado": {
-          "detected": false,
-          "positive": null,
-          "duration": null
+          "detected": true,
+          "positive": true
         },
         "color": {
           "detected": true,
-          "positive": true,
-          "duration": null
-        },
-        "duracion": {
-          "detected": false,
-          "positive": null,
-          "duration": null
+          "positive": true
         }
       },
+      "model_response": "tamaño: Si, sangrado: Si, color: Si",
       "per_symptom": {
         "dolor": {
           "expected": null,
@@ -1907,13 +3694,13 @@
         },
         "tamaño": {
           "expected": null,
-          "got": null,
+          "got": true,
           "correct": null,
           "skip": true
         },
         "sangrado": {
           "expected": null,
-          "got": null,
+          "got": true,
           "correct": null,
           "skip": true
         },
@@ -1939,37 +3726,16 @@
       "question": "color",
       "text": "El color es el mismo de siempre, uniforme y marrón.",
       "extracted": {
-        "dolor": {
-          "detected": false,
-          "positive": null,
-          "duration": null
-        },
-        "picor": {
-          "detected": false,
-          "positive": null,
-          "duration": null
-        },
-        "tamaño": {
-          "detected": false,
-          "positive": null,
-          "duration": null
-        },
-        "sangrado": {
-          "detected": false,
-          "positive": null,
-          "duration": null
-        },
         "color": {
-          "detected": false,
-          "positive": false,
-          "duration": null
+          "detected": true,
+          "positive": false
         },
         "duracion": {
           "detected": true,
-          "positive": true,
-          "duration": null
+          "positive": true
         }
       },
+      "model_response": "color: No, duracion: Si",
       "per_symptom": {
         "dolor": {
           "expected": null,
@@ -2017,37 +3783,12 @@
       "question": "color",
       "text": "Cambió de color, ahora tiene partes rojizas.",
       "extracted": {
-        "dolor": {
-          "detected": false,
-          "positive": null,
-          "duration": null
-        },
-        "picor": {
-          "detected": false,
-          "positive": null,
-          "duration": null
-        },
-        "tamaño": {
-          "detected": false,
-          "positive": null,
-          "duration": null
-        },
-        "sangrado": {
-          "detected": false,
-          "positive": null,
-          "duration": null
-        },
         "color": {
           "detected": true,
-          "positive": true,
-          "duration": null
-        },
-        "duracion": {
-          "detected": false,
-          "positive": null,
-          "duration": null
+          "positive": true
         }
       },
+      "model_response": "color: Si",
       "per_symptom": {
         "dolor": {
           "expected": null,
@@ -2091,35 +3832,613 @@
       "correct": 1
     },
     {
+      "id": "C-06",
+      "question": "color",
+      "text": "Está mucho más negro que al principio.",
+      "extracted": {
+        "color": {
+          "detected": true,
+          "positive": true
+        }
+      },
+      "model_response": "color: Si",
+      "per_symptom": {
+        "dolor": {
+          "expected": null,
+          "got": null,
+          "correct": null,
+          "skip": true
+        },
+        "picor": {
+          "expected": null,
+          "got": null,
+          "correct": null,
+          "skip": true
+        },
+        "tamaño": {
+          "expected": null,
+          "got": null,
+          "correct": null,
+          "skip": true
+        },
+        "sangrado": {
+          "expected": null,
+          "got": null,
+          "correct": null,
+          "skip": true
+        },
+        "color": {
+          "expected": true,
+          "got": true,
+          "correct": true,
+          "skip": false
+        },
+        "duracion": {
+          "expected": null,
+          "got": null,
+          "correct": null,
+          "skip": true
+        }
+      },
+      "case_accuracy": 1.0,
+      "evaluated": 1,
+      "correct": 1
+    },
+    {
+      "id": "C-07",
+      "question": "color",
+      "text": "No noto ninguna variación cromática, está igual.",
+      "extracted": {
+        "color": {
+          "detected": true,
+          "positive": false
+        },
+        "picor": {
+          "detected": true,
+          "positive": false
+        },
+        "tamaño": {
+          "detected": true,
+          "positive": false
+        },
+        "sangrado": {
+          "detected": true,
+          "positive": false
+        }
+      },
+      "model_response": "color: No, picor: No, tamaño: No, sangrado: No",
+      "per_symptom": {
+        "dolor": {
+          "expected": null,
+          "got": null,
+          "correct": null,
+          "skip": true
+        },
+        "picor": {
+          "expected": null,
+          "got": false,
+          "correct": null,
+          "skip": true
+        },
+        "tamaño": {
+          "expected": null,
+          "got": false,
+          "correct": null,
+          "skip": true
+        },
+        "sangrado": {
+          "expected": null,
+          "got": false,
+          "correct": null,
+          "skip": true
+        },
+        "color": {
+          "expected": false,
+          "got": false,
+          "correct": true,
+          "skip": false
+        },
+        "duracion": {
+          "expected": null,
+          "got": null,
+          "correct": null,
+          "skip": true
+        }
+      },
+      "case_accuracy": 1.0,
+      "evaluated": 1,
+      "correct": 1
+    },
+    {
+      "id": "C-08",
+      "question": "color",
+      "text": "Tiene un borde azulado que antes no tenía.",
+      "extracted": {
+        "color": {
+          "detected": true,
+          "positive": true
+        }
+      },
+      "model_response": "color: Si",
+      "per_symptom": {
+        "dolor": {
+          "expected": null,
+          "got": null,
+          "correct": null,
+          "skip": true
+        },
+        "picor": {
+          "expected": null,
+          "got": null,
+          "correct": null,
+          "skip": true
+        },
+        "tamaño": {
+          "expected": null,
+          "got": null,
+          "correct": null,
+          "skip": true
+        },
+        "sangrado": {
+          "expected": null,
+          "got": null,
+          "correct": null,
+          "skip": true
+        },
+        "color": {
+          "expected": true,
+          "got": true,
+          "correct": true,
+          "skip": false
+        },
+        "duracion": {
+          "expected": null,
+          "got": null,
+          "correct": null,
+          "skip": true
+        }
+      },
+      "case_accuracy": 1.0,
+      "evaluated": 1,
+      "correct": 1
+    },
+    {
+      "id": "C-09",
+      "question": "color",
+      "text": "Mantiene su tono marrón uniforme de siempre.",
+      "extracted": {
+        "color": {
+          "detected": true,
+          "positive": false
+        },
+        "duracion": {
+          "detected": true,
+          "positive": true
+        }
+      },
+      "model_response": "color: No, duracion: Si",
+      "per_symptom": {
+        "dolor": {
+          "expected": null,
+          "got": null,
+          "correct": null,
+          "skip": true
+        },
+        "picor": {
+          "expected": null,
+          "got": null,
+          "correct": null,
+          "skip": true
+        },
+        "tamaño": {
+          "expected": null,
+          "got": null,
+          "correct": null,
+          "skip": true
+        },
+        "sangrado": {
+          "expected": null,
+          "got": null,
+          "correct": null,
+          "skip": true
+        },
+        "color": {
+          "expected": false,
+          "got": false,
+          "correct": true,
+          "skip": false
+        },
+        "duracion": {
+          "expected": null,
+          "got": true,
+          "correct": null,
+          "skip": true
+        }
+      },
+      "case_accuracy": 1.0,
+      "evaluated": 1,
+      "correct": 1
+    },
+    {
+      "id": "C-10",
+      "question": "color",
+      "text": "Se ha vuelto bicolor, marrón y negro.",
+      "extracted": {
+        "color": {
+          "detected": true,
+          "positive": true
+        }
+      },
+      "model_response": "color: Si",
+      "per_symptom": {
+        "dolor": {
+          "expected": null,
+          "got": null,
+          "correct": null,
+          "skip": true
+        },
+        "picor": {
+          "expected": null,
+          "got": null,
+          "correct": null,
+          "skip": true
+        },
+        "tamaño": {
+          "expected": null,
+          "got": null,
+          "correct": null,
+          "skip": true
+        },
+        "sangrado": {
+          "expected": null,
+          "got": null,
+          "correct": null,
+          "skip": true
+        },
+        "color": {
+          "expected": true,
+          "got": true,
+          "correct": true,
+          "skip": false
+        },
+        "duracion": {
+          "expected": null,
+          "got": null,
+          "correct": null,
+          "skip": true
+        }
+      },
+      "case_accuracy": 1.0,
+      "evaluated": 1,
+      "correct": 1
+    },
+    {
+      "id": "C-11",
+      "question": "color",
+      "text": "Están apareciendo zonas blancas dentro.",
+      "extracted": {
+        "color": {
+          "detected": true,
+          "positive": true
+        }
+      },
+      "model_response": "color: Si",
+      "per_symptom": {
+        "dolor": {
+          "expected": null,
+          "got": null,
+          "correct": null,
+          "skip": true
+        },
+        "picor": {
+          "expected": null,
+          "got": null,
+          "correct": null,
+          "skip": true
+        },
+        "tamaño": {
+          "expected": null,
+          "got": null,
+          "correct": null,
+          "skip": true
+        },
+        "sangrado": {
+          "expected": null,
+          "got": null,
+          "correct": null,
+          "skip": true
+        },
+        "color": {
+          "expected": true,
+          "got": true,
+          "correct": true,
+          "skip": false
+        },
+        "duracion": {
+          "expected": null,
+          "got": null,
+          "correct": null,
+          "skip": true
+        }
+      },
+      "case_accuracy": 1.0,
+      "evaluated": 1,
+      "correct": 1
+    },
+    {
+      "id": "C-12",
+      "question": "color",
+      "text": "No ha habido ningún cambio en la pigmentación.",
+      "extracted": {
+        "color": {
+          "detected": true,
+          "positive": false
+        },
+        "tamaño": {
+          "detected": true,
+          "positive": false
+        }
+      },
+      "model_response": "color: No, tamaño: No",
+      "per_symptom": {
+        "dolor": {
+          "expected": null,
+          "got": null,
+          "correct": null,
+          "skip": true
+        },
+        "picor": {
+          "expected": null,
+          "got": null,
+          "correct": null,
+          "skip": true
+        },
+        "tamaño": {
+          "expected": null,
+          "got": false,
+          "correct": null,
+          "skip": true
+        },
+        "sangrado": {
+          "expected": null,
+          "got": null,
+          "correct": null,
+          "skip": true
+        },
+        "color": {
+          "expected": false,
+          "got": false,
+          "correct": true,
+          "skip": false
+        },
+        "duracion": {
+          "expected": null,
+          "got": null,
+          "correct": null,
+          "skip": true
+        }
+      },
+      "case_accuracy": 1.0,
+      "evaluated": 1,
+      "correct": 1
+    },
+    {
+      "id": "C-13",
+      "question": "color",
+      "text": "Está mucho más rojizo que la semana pasada.",
+      "extracted": {
+        "color": {
+          "detected": true,
+          "positive": true
+        }
+      },
+      "model_response": "color: Si",
+      "per_symptom": {
+        "dolor": {
+          "expected": null,
+          "got": null,
+          "correct": null,
+          "skip": true
+        },
+        "picor": {
+          "expected": null,
+          "got": null,
+          "correct": null,
+          "skip": true
+        },
+        "tamaño": {
+          "expected": null,
+          "got": null,
+          "correct": null,
+          "skip": true
+        },
+        "sangrado": {
+          "expected": null,
+          "got": null,
+          "correct": null,
+          "skip": true
+        },
+        "color": {
+          "expected": true,
+          "got": true,
+          "correct": true,
+          "skip": false
+        },
+        "duracion": {
+          "expected": null,
+          "got": null,
+          "correct": null,
+          "skip": true
+        }
+      },
+      "case_accuracy": 1.0,
+      "evaluated": 1,
+      "correct": 1
+    },
+    {
+      "id": "C-14",
+      "question": "color",
+      "text": "El color es el mismo, no ha mutado.",
+      "extracted": {
+        "color": {
+          "detected": true,
+          "positive": false
+        }
+      },
+      "model_response": "color: No",
+      "per_symptom": {
+        "dolor": {
+          "expected": null,
+          "got": null,
+          "correct": null,
+          "skip": true
+        },
+        "picor": {
+          "expected": null,
+          "got": null,
+          "correct": null,
+          "skip": true
+        },
+        "tamaño": {
+          "expected": null,
+          "got": null,
+          "correct": null,
+          "skip": true
+        },
+        "sangrado": {
+          "expected": null,
+          "got": null,
+          "correct": null,
+          "skip": true
+        },
+        "color": {
+          "expected": false,
+          "got": false,
+          "correct": true,
+          "skip": false
+        },
+        "duracion": {
+          "expected": null,
+          "got": null,
+          "correct": null,
+          "skip": true
+        }
+      },
+      "case_accuracy": 1.0,
+      "evaluated": 1,
+      "correct": 1
+    },
+    {
+      "id": "C-15",
+      "question": "color",
+      "text": "Se ha puesto muy oscuro, casi negro azabache.",
+      "extracted": {
+        "color": {
+          "detected": true,
+          "positive": true
+        }
+      },
+      "model_response": "color: Si",
+      "per_symptom": {
+        "dolor": {
+          "expected": null,
+          "got": null,
+          "correct": null,
+          "skip": true
+        },
+        "picor": {
+          "expected": null,
+          "got": null,
+          "correct": null,
+          "skip": true
+        },
+        "tamaño": {
+          "expected": null,
+          "got": null,
+          "correct": null,
+          "skip": true
+        },
+        "sangrado": {
+          "expected": null,
+          "got": null,
+          "correct": null,
+          "skip": true
+        },
+        "color": {
+          "expected": true,
+          "got": true,
+          "correct": true,
+          "skip": false
+        },
+        "duracion": {
+          "expected": null,
+          "got": null,
+          "correct": null,
+          "skip": true
+        }
+      },
+      "case_accuracy": 1.0,
+      "evaluated": 1,
+      "correct": 1
+    },
+    {
+      "id": "C-16",
+      "question": "color",
+      "text": "Su tonalidad sigue siendo la misma.",
+      "extracted": {
+        "color": {
+          "detected": true,
+          "positive": false
+        }
+      },
+      "model_response": "color: No",
+      "per_symptom": {
+        "dolor": {
+          "expected": null,
+          "got": null,
+          "correct": null,
+          "skip": true
+        },
+        "picor": {
+          "expected": null,
+          "got": null,
+          "correct": null,
+          "skip": true
+        },
+        "tamaño": {
+          "expected": null,
+          "got": null,
+          "correct": null,
+          "skip": true
+        },
+        "sangrado": {
+          "expected": null,
+          "got": null,
+          "correct": null,
+          "skip": true
+        },
+        "color": {
+          "expected": false,
+          "got": false,
+          "correct": true,
+          "skip": false
+        },
+        "duracion": {
+          "expected": null,
+          "got": null,
+          "correct": null,
+          "skip": true
+        }
+      },
+      "case_accuracy": 1.0,
+      "evaluated": 1,
+      "correct": 1
+    },
+    {
       "id": "DU-01",
       "question": "duracion",
       "text": "Lo tengo desde hace unos 3 meses.",
       "extracted": {
-        "dolor": {
-          "detected": false,
-          "positive": null,
-          "duration": null
-        },
-        "picor": {
-          "detected": false,
-          "positive": null,
-          "duration": null
-        },
-        "tamaño": {
-          "detected": false,
-          "positive": null,
-          "duration": null
-        },
-        "sangrado": {
-          "detected": false,
-          "positive": null,
-          "duration": null
-        },
-        "color": {
-          "detected": false,
-          "positive": null,
-          "duration": null
-        },
         "duracion": {
           "detected": true,
           "positive": true,
@@ -2129,6 +4448,7 @@
           }
         }
       },
+      "model_response": "duracion: Si",
       "per_symptom": {
         "dolor": {
           "expected": null,
@@ -2176,31 +4496,6 @@
       "question": "duracion",
       "text": "Lo empecé a notar hace 2 años aproximadamente.",
       "extracted": {
-        "dolor": {
-          "detected": false,
-          "positive": null,
-          "duration": null
-        },
-        "picor": {
-          "detected": false,
-          "positive": null,
-          "duration": null
-        },
-        "tamaño": {
-          "detected": false,
-          "positive": null,
-          "duration": null
-        },
-        "sangrado": {
-          "detected": false,
-          "positive": null,
-          "duration": null
-        },
-        "color": {
-          "detected": false,
-          "positive": null,
-          "duration": null
-        },
         "duracion": {
           "detected": true,
           "positive": true,
@@ -2210,6 +4505,7 @@
           }
         }
       },
+      "model_response": "duracion: Si",
       "per_symptom": {
         "dolor": {
           "expected": null,
@@ -2257,37 +4553,12 @@
       "question": "duracion",
       "text": "Lo tengo de toda la vida, desde que nací.",
       "extracted": {
-        "dolor": {
-          "detected": false,
-          "positive": null,
-          "duration": null
-        },
-        "picor": {
-          "detected": false,
-          "positive": null,
-          "duration": null
-        },
-        "tamaño": {
-          "detected": false,
-          "positive": null,
-          "duration": null
-        },
-        "sangrado": {
-          "detected": false,
-          "positive": null,
-          "duration": null
-        },
-        "color": {
-          "detected": false,
-          "positive": null,
-          "duration": null
-        },
         "duracion": {
           "detected": true,
-          "positive": true,
-          "duration": null
+          "positive": true
         }
       },
+      "model_response": "duracion: Si",
       "per_symptom": {
         "dolor": {
           "expected": null,
@@ -2335,37 +4606,16 @@
       "question": "duracion",
       "text": "Recientemente noté los cambios, hace unas semanas.",
       "extracted": {
-        "dolor": {
-          "detected": false,
-          "positive": null,
-          "duration": null
-        },
-        "picor": {
-          "detected": false,
-          "positive": null,
-          "duration": null
-        },
-        "tamaño": {
-          "detected": false,
-          "positive": null,
-          "duration": null
-        },
-        "sangrado": {
-          "detected": false,
-          "positive": null,
-          "duration": null
-        },
-        "color": {
-          "detected": false,
-          "positive": null,
-          "duration": null
-        },
         "duracion": {
           "detected": true,
           "positive": true,
-          "duration": null
+          "duration": {
+            "value": "unas",
+            "unit": "semanas"
+          }
         }
       },
+      "model_response": "duracion: Si",
       "per_symptom": {
         "dolor": {
           "expected": null,
@@ -2413,37 +4663,599 @@
       "question": "duracion",
       "text": "No lo sé exactamente, hace bastante tiempo.",
       "extracted": {
+        "duracion": {
+          "detected": true,
+          "positive": true
+        }
+      },
+      "model_response": "duracion: Si",
+      "per_symptom": {
         "dolor": {
-          "detected": false,
-          "positive": null,
-          "duration": null
+          "expected": null,
+          "got": null,
+          "correct": null,
+          "skip": true
         },
         "picor": {
-          "detected": false,
-          "positive": null,
-          "duration": null
+          "expected": null,
+          "got": null,
+          "correct": null,
+          "skip": true
         },
         "tamaño": {
-          "detected": false,
-          "positive": null,
-          "duration": null
+          "expected": null,
+          "got": null,
+          "correct": null,
+          "skip": true
         },
         "sangrado": {
-          "detected": false,
-          "positive": null,
-          "duration": null
+          "expected": null,
+          "got": null,
+          "correct": null,
+          "skip": true
         },
         "color": {
-          "detected": false,
-          "positive": null,
-          "duration": null
+          "expected": null,
+          "got": null,
+          "correct": null,
+          "skip": true
         },
+        "duracion": {
+          "expected": true,
+          "got": true,
+          "correct": true,
+          "skip": false
+        }
+      },
+      "case_accuracy": 1.0,
+      "evaluated": 1,
+      "correct": 1
+    },
+    {
+      "id": "DU-06",
+      "question": "duracion",
+      "text": "Apareció hace apenas unos días.",
+      "extracted": {
         "duracion": {
           "detected": true,
           "positive": true,
-          "duration": null
+          "duration": {
+            "value": "unos",
+            "unit": "días"
+          }
         }
       },
+      "model_response": "duracion: Si",
+      "per_symptom": {
+        "dolor": {
+          "expected": null,
+          "got": null,
+          "correct": null,
+          "skip": true
+        },
+        "picor": {
+          "expected": null,
+          "got": null,
+          "correct": null,
+          "skip": true
+        },
+        "tamaño": {
+          "expected": null,
+          "got": null,
+          "correct": null,
+          "skip": true
+        },
+        "sangrado": {
+          "expected": null,
+          "got": null,
+          "correct": null,
+          "skip": true
+        },
+        "color": {
+          "expected": null,
+          "got": null,
+          "correct": null,
+          "skip": true
+        },
+        "duracion": {
+          "expected": true,
+          "got": true,
+          "correct": true,
+          "skip": false
+        }
+      },
+      "case_accuracy": 1.0,
+      "evaluated": 1,
+      "correct": 1
+    },
+    {
+      "id": "DU-07",
+      "question": "duracion",
+      "text": "Me salió hace cuestión de quince días.",
+      "extracted": {
+        "duracion": {
+          "detected": true,
+          "positive": true
+        }
+      },
+      "model_response": "duracion: Si",
+      "per_symptom": {
+        "dolor": {
+          "expected": null,
+          "got": null,
+          "correct": null,
+          "skip": true
+        },
+        "picor": {
+          "expected": null,
+          "got": null,
+          "correct": null,
+          "skip": true
+        },
+        "tamaño": {
+          "expected": null,
+          "got": null,
+          "correct": null,
+          "skip": true
+        },
+        "sangrado": {
+          "expected": null,
+          "got": null,
+          "correct": null,
+          "skip": true
+        },
+        "color": {
+          "expected": null,
+          "got": null,
+          "correct": null,
+          "skip": true
+        },
+        "duracion": {
+          "expected": true,
+          "got": true,
+          "correct": true,
+          "skip": false
+        }
+      },
+      "case_accuracy": 1.0,
+      "evaluated": 1,
+      "correct": 1
+    },
+    {
+      "id": "DU-08",
+      "question": "duracion",
+      "text": "Llevo con esto más de una década.",
+      "extracted": {
+        "duracion": {
+          "detected": true,
+          "positive": true
+        }
+      },
+      "model_response": "duracion: Si",
+      "per_symptom": {
+        "dolor": {
+          "expected": null,
+          "got": null,
+          "correct": null,
+          "skip": true
+        },
+        "picor": {
+          "expected": null,
+          "got": null,
+          "correct": null,
+          "skip": true
+        },
+        "tamaño": {
+          "expected": null,
+          "got": null,
+          "correct": null,
+          "skip": true
+        },
+        "sangrado": {
+          "expected": null,
+          "got": null,
+          "correct": null,
+          "skip": true
+        },
+        "color": {
+          "expected": null,
+          "got": null,
+          "correct": null,
+          "skip": true
+        },
+        "duracion": {
+          "expected": true,
+          "got": true,
+          "correct": true,
+          "skip": false
+        }
+      },
+      "case_accuracy": 1.0,
+      "evaluated": 1,
+      "correct": 1
+    },
+    {
+      "id": "DU-09",
+      "question": "duracion",
+      "text": "Apareció repentinamente el verano pasado.",
+      "extracted": {
+        "duracion": {
+          "detected": true,
+          "positive": true
+        }
+      },
+      "model_response": "duracion: Si",
+      "per_symptom": {
+        "dolor": {
+          "expected": null,
+          "got": null,
+          "correct": null,
+          "skip": true
+        },
+        "picor": {
+          "expected": null,
+          "got": null,
+          "correct": null,
+          "skip": true
+        },
+        "tamaño": {
+          "expected": null,
+          "got": null,
+          "correct": null,
+          "skip": true
+        },
+        "sangrado": {
+          "expected": null,
+          "got": null,
+          "correct": null,
+          "skip": true
+        },
+        "color": {
+          "expected": null,
+          "got": null,
+          "correct": null,
+          "skip": true
+        },
+        "duracion": {
+          "expected": true,
+          "got": true,
+          "correct": true,
+          "skip": false
+        }
+      },
+      "case_accuracy": 1.0,
+      "evaluated": 1,
+      "correct": 1
+    },
+    {
+      "id": "DU-10",
+      "question": "duracion",
+      "text": "Hace unos cinco años que lo tengo.",
+      "extracted": {
+        "duracion": {
+          "detected": true,
+          "positive": true
+        }
+      },
+      "model_response": "duracion: Si",
+      "per_symptom": {
+        "dolor": {
+          "expected": null,
+          "got": null,
+          "correct": null,
+          "skip": true
+        },
+        "picor": {
+          "expected": null,
+          "got": null,
+          "correct": null,
+          "skip": true
+        },
+        "tamaño": {
+          "expected": null,
+          "got": null,
+          "correct": null,
+          "skip": true
+        },
+        "sangrado": {
+          "expected": null,
+          "got": null,
+          "correct": null,
+          "skip": true
+        },
+        "color": {
+          "expected": null,
+          "got": null,
+          "correct": null,
+          "skip": true
+        },
+        "duracion": {
+          "expected": true,
+          "got": true,
+          "correct": true,
+          "skip": false
+        }
+      },
+      "case_accuracy": 1.0,
+      "evaluated": 1,
+      "correct": 1
+    },
+    {
+      "id": "DU-11",
+      "question": "duracion",
+      "text": "Es algo nuevo de este semestre.",
+      "extracted": {
+        "duracion": {
+          "detected": true,
+          "positive": true
+        }
+      },
+      "model_response": "duracion: Si",
+      "per_symptom": {
+        "dolor": {
+          "expected": null,
+          "got": null,
+          "correct": null,
+          "skip": true
+        },
+        "picor": {
+          "expected": null,
+          "got": null,
+          "correct": null,
+          "skip": true
+        },
+        "tamaño": {
+          "expected": null,
+          "got": null,
+          "correct": null,
+          "skip": true
+        },
+        "sangrado": {
+          "expected": null,
+          "got": null,
+          "correct": null,
+          "skip": true
+        },
+        "color": {
+          "expected": null,
+          "got": null,
+          "correct": null,
+          "skip": true
+        },
+        "duracion": {
+          "expected": true,
+          "got": true,
+          "correct": true,
+          "skip": false
+        }
+      },
+      "case_accuracy": 1.0,
+      "evaluated": 1,
+      "correct": 1
+    },
+    {
+      "id": "DU-12",
+      "question": "duracion",
+      "text": "Lo descubrí hace tan solo tres semanas.",
+      "extracted": {
+        "duracion": {
+          "detected": true,
+          "positive": true
+        }
+      },
+      "model_response": "duracion: Si",
+      "per_symptom": {
+        "dolor": {
+          "expected": null,
+          "got": null,
+          "correct": null,
+          "skip": true
+        },
+        "picor": {
+          "expected": null,
+          "got": null,
+          "correct": null,
+          "skip": true
+        },
+        "tamaño": {
+          "expected": null,
+          "got": null,
+          "correct": null,
+          "skip": true
+        },
+        "sangrado": {
+          "expected": null,
+          "got": null,
+          "correct": null,
+          "skip": true
+        },
+        "color": {
+          "expected": null,
+          "got": null,
+          "correct": null,
+          "skip": true
+        },
+        "duracion": {
+          "expected": true,
+          "got": true,
+          "correct": true,
+          "skip": false
+        }
+      },
+      "case_accuracy": 1.0,
+      "evaluated": 1,
+      "correct": 1
+    },
+    {
+      "id": "DU-13",
+      "question": "duracion",
+      "text": "Lo tengo ahí desde que tengo memoria.",
+      "extracted": {
+        "duracion": {
+          "detected": true,
+          "positive": true
+        }
+      },
+      "model_response": "duracion: Si",
+      "per_symptom": {
+        "dolor": {
+          "expected": null,
+          "got": null,
+          "correct": null,
+          "skip": true
+        },
+        "picor": {
+          "expected": null,
+          "got": null,
+          "correct": null,
+          "skip": true
+        },
+        "tamaño": {
+          "expected": null,
+          "got": null,
+          "correct": null,
+          "skip": true
+        },
+        "sangrado": {
+          "expected": null,
+          "got": null,
+          "correct": null,
+          "skip": true
+        },
+        "color": {
+          "expected": null,
+          "got": null,
+          "correct": null,
+          "skip": true
+        },
+        "duracion": {
+          "expected": true,
+          "got": true,
+          "correct": true,
+          "skip": false
+        }
+      },
+      "case_accuracy": 1.0,
+      "evaluated": 1,
+      "correct": 1
+    },
+    {
+      "id": "DU-14",
+      "question": "duracion",
+      "text": "Apenas lleva conmigo un par de meses.",
+      "extracted": {
+        "duracion": {
+          "detected": true,
+          "positive": true
+        }
+      },
+      "model_response": "duracion: Si",
+      "per_symptom": {
+        "dolor": {
+          "expected": null,
+          "got": null,
+          "correct": null,
+          "skip": true
+        },
+        "picor": {
+          "expected": null,
+          "got": null,
+          "correct": null,
+          "skip": true
+        },
+        "tamaño": {
+          "expected": null,
+          "got": null,
+          "correct": null,
+          "skip": true
+        },
+        "sangrado": {
+          "expected": null,
+          "got": null,
+          "correct": null,
+          "skip": true
+        },
+        "color": {
+          "expected": null,
+          "got": null,
+          "correct": null,
+          "skip": true
+        },
+        "duracion": {
+          "expected": true,
+          "got": true,
+          "correct": true,
+          "skip": false
+        }
+      },
+      "case_accuracy": 1.0,
+      "evaluated": 1,
+      "correct": 1
+    },
+    {
+      "id": "DU-15",
+      "question": "duracion",
+      "text": "Salió hace mucho tiempo, no recuerdo cuándo.",
+      "extracted": {
+        "duracion": {
+          "detected": true,
+          "positive": true
+        }
+      },
+      "model_response": "duracion: Si",
+      "per_symptom": {
+        "dolor": {
+          "expected": null,
+          "got": null,
+          "correct": null,
+          "skip": true
+        },
+        "picor": {
+          "expected": null,
+          "got": null,
+          "correct": null,
+          "skip": true
+        },
+        "tamaño": {
+          "expected": null,
+          "got": null,
+          "correct": null,
+          "skip": true
+        },
+        "sangrado": {
+          "expected": null,
+          "got": null,
+          "correct": null,
+          "skip": true
+        },
+        "color": {
+          "expected": null,
+          "got": null,
+          "correct": null,
+          "skip": true
+        },
+        "duracion": {
+          "expected": true,
+          "got": true,
+          "correct": true,
+          "skip": false
+        }
+      },
+      "case_accuracy": 1.0,
+      "evaluated": 1,
+      "correct": 1
+    },
+    {
+      "id": "DU-16",
+      "question": "duracion",
+      "text": "Ha aparecido en el último año.",
+      "extracted": {
+        "duracion": {
+          "detected": true,
+          "positive": true
+        }
+      },
+      "model_response": "duracion: Si",
       "per_symptom": {
         "dolor": {
           "expected": null,
@@ -2491,37 +5303,16 @@
       "question": "general",
       "text": "Me pica y también ha cambiado de color, está más oscuro.",
       "extracted": {
-        "dolor": {
-          "detected": false,
-          "positive": null,
-          "duration": null
-        },
         "picor": {
           "detected": true,
-          "positive": true,
-          "duration": null
-        },
-        "tamaño": {
-          "detected": false,
-          "positive": null,
-          "duration": null
-        },
-        "sangrado": {
-          "detected": false,
-          "positive": null,
-          "duration": null
+          "positive": true
         },
         "color": {
           "detected": true,
-          "positive": true,
-          "duration": null
-        },
-        "duracion": {
-          "detected": false,
-          "positive": null,
-          "duration": null
+          "positive": true
         }
       },
+      "model_response": "picor: Si, color: Si",
       "per_symptom": {
         "dolor": {
           "expected": null,
@@ -2571,35 +5362,14 @@
       "extracted": {
         "dolor": {
           "detected": true,
-          "positive": true,
-          "duration": null
-        },
-        "picor": {
-          "detected": false,
-          "positive": null,
-          "duration": null
-        },
-        "tamaño": {
-          "detected": false,
-          "positive": null,
-          "duration": null
+          "positive": true
         },
         "sangrado": {
           "detected": true,
-          "positive": true,
-          "duration": null
-        },
-        "color": {
-          "detected": false,
-          "positive": null,
-          "duration": null
-        },
-        "duracion": {
-          "detected": false,
-          "positive": null,
-          "duration": null
+          "positive": true
         }
       },
+      "model_response": "dolor: Si, sangrado: Si",
       "per_symptom": {
         "dolor": {
           "expected": true,
@@ -2648,36 +5418,27 @@
       "text": "No duele, no pica y no ha cambiado de tamaño.",
       "extracted": {
         "dolor": {
-          "detected": false,
-          "positive": false,
-          "duration": null
+          "detected": true,
+          "positive": false
         },
         "picor": {
-          "detected": false,
-          "positive": false,
-          "duration": null
+          "detected": true,
+          "positive": false
         },
         "tamaño": {
-          "detected": false,
-          "positive": false,
-          "duration": null
-        },
-        "sangrado": {
-          "detected": false,
-          "positive": null,
-          "duration": null
+          "detected": true,
+          "positive": false
         },
         "color": {
-          "detected": false,
-          "positive": null,
-          "duration": null
+          "detected": true,
+          "positive": false
         },
         "duracion": {
-          "detected": false,
-          "positive": null,
-          "duration": null
+          "detected": true,
+          "positive": true
         }
       },
+      "model_response": "dolor: No, picor: No, tamaño: No, color: No, duracion: Si",
       "per_symptom": {
         "dolor": {
           "expected": false,
@@ -2705,13 +5466,13 @@
         },
         "color": {
           "expected": null,
-          "got": null,
+          "got": false,
           "correct": null,
           "skip": true
         },
         "duracion": {
           "expected": null,
-          "got": null,
+          "got": true,
           "correct": null,
           "skip": true
         }
@@ -2725,30 +5486,9 @@
       "question": "general",
       "text": "Creció bastante y lo noto desde hace 6 semanas.",
       "extracted": {
-        "dolor": {
-          "detected": false,
-          "positive": null,
-          "duration": null
-        },
-        "picor": {
-          "detected": false,
-          "positive": null,
-          "duration": null
-        },
         "tamaño": {
           "detected": true,
-          "positive": true,
-          "duration": null
-        },
-        "sangrado": {
-          "detected": false,
-          "positive": null,
-          "duration": null
-        },
-        "color": {
-          "detected": false,
-          "positive": null,
-          "duration": null
+          "positive": true
         },
         "duracion": {
           "detected": true,
@@ -2759,6 +5499,7 @@
           }
         }
       },
+      "model_response": "tamaño: Si, duracion: Si",
       "per_symptom": {
         "dolor": {
           "expected": null,
@@ -2807,36 +5548,27 @@
       "text": "No siento dolor ni picor, pero sí noto que ha crecido mucho.",
       "extracted": {
         "dolor": {
-          "detected": false,
-          "positive": false,
-          "duration": null
+          "detected": true,
+          "positive": false
         },
         "picor": {
-          "detected": false,
-          "positive": false,
-          "duration": null
+          "detected": true,
+          "positive": false
         },
         "tamaño": {
           "detected": true,
-          "positive": true,
-          "duration": null
+          "positive": false
         },
         "sangrado": {
-          "detected": false,
-          "positive": null,
-          "duration": null
+          "detected": true,
+          "positive": false
         },
         "color": {
-          "detected": false,
-          "positive": null,
-          "duration": null
-        },
-        "duracion": {
-          "detected": false,
-          "positive": null,
-          "duration": null
+          "detected": true,
+          "positive": false
         }
       },
+      "model_response": "dolor: No, picor: No, tamaño: No, sangrado: No, color: No",
       "per_symptom": {
         "dolor": {
           "expected": false,
@@ -2852,9 +5584,123 @@
         },
         "tamaño": {
           "expected": true,
+          "got": false,
+          "correct": false,
+          "skip": false
+        },
+        "sangrado": {
+          "expected": null,
+          "got": false,
+          "correct": null,
+          "skip": true
+        },
+        "color": {
+          "expected": null,
+          "got": false,
+          "correct": null,
+          "skip": true
+        },
+        "duracion": {
+          "expected": null,
+          "got": null,
+          "correct": null,
+          "skip": true
+        }
+      },
+      "case_accuracy": 0.6666666666666666,
+      "evaluated": 3,
+      "correct": 2
+    },
+    {
+      "id": "MX-06",
+      "question": "general",
+      "text": "Está más grande, más oscuro y además me duele.",
+      "extracted": {
+        "dolor": {
+          "detected": true,
+          "positive": true
+        },
+        "tamaño": {
+          "detected": true,
+          "positive": true
+        },
+        "color": {
+          "detected": true,
+          "positive": true
+        }
+      },
+      "model_response": "dolor: Si, tamaño: Si, color: Si",
+      "per_symptom": {
+        "dolor": {
+          "expected": true,
           "got": true,
           "correct": true,
           "skip": false
+        },
+        "picor": {
+          "expected": null,
+          "got": null,
+          "correct": null,
+          "skip": true
+        },
+        "tamaño": {
+          "expected": true,
+          "got": true,
+          "correct": true,
+          "skip": false
+        },
+        "sangrado": {
+          "expected": null,
+          "got": null,
+          "correct": null,
+          "skip": true
+        },
+        "color": {
+          "expected": true,
+          "got": true,
+          "correct": true,
+          "skip": false
+        },
+        "duracion": {
+          "expected": null,
+          "got": null,
+          "correct": null,
+          "skip": true
+        }
+      },
+      "case_accuracy": 1.0,
+      "evaluated": 3,
+      "correct": 3
+    },
+    {
+      "id": "SC-01",
+      "question": "dolor",
+      "text": "Sí.",
+      "extracted": {
+        "dolor": {
+          "detected": true,
+          "positive": true
+        }
+      },
+      "model_response": "dolor: Si",
+      "per_symptom": {
+        "dolor": {
+          "expected": true,
+          "got": true,
+          "correct": true,
+          "skip": false
+        },
+        "picor": {
+          "expected": null,
+          "got": null,
+          "correct": null,
+          "skip": true
+        },
+        "tamaño": {
+          "expected": null,
+          "got": null,
+          "correct": null,
+          "skip": true
         },
         "sangrado": {
           "expected": null,
@@ -2876,8 +5722,167 @@
         }
       },
       "case_accuracy": 1.0,
-      "evaluated": 3,
-      "correct": 3
+      "evaluated": 1,
+      "correct": 1
+    },
+    {
+      "id": "SC-02",
+      "question": "dolor",
+      "text": "No.",
+      "extracted": {
+        "dolor": {
+          "detected": true,
+          "positive": false
+        }
+      },
+      "model_response": "dolor: No",
+      "per_symptom": {
+        "dolor": {
+          "expected": false,
+          "got": false,
+          "correct": true,
+          "skip": false
+        },
+        "picor": {
+          "expected": null,
+          "got": null,
+          "correct": null,
+          "skip": true
+        },
+        "tamaño": {
+          "expected": null,
+          "got": null,
+          "correct": null,
+          "skip": true
+        },
+        "sangrado": {
+          "expected": null,
+          "got": null,
+          "correct": null,
+          "skip": true
+        },
+        "color": {
+          "expected": null,
+          "got": null,
+          "correct": null,
+          "skip": true
+        },
+        "duracion": {
+          "expected": null,
+          "got": null,
+          "correct": null,
+          "skip": true
+        }
+      },
+      "case_accuracy": 1.0,
+      "evaluated": 1,
+      "correct": 1
+    },
+    {
+      "id": "SC-03",
+      "question": "picor",
+      "text": "Un poquito nada más.",
+      "extracted": {
+        "picor": {
+          "detected": true,
+          "positive": true
+        }
+      },
+      "model_response": "picor: Si",
+      "per_symptom": {
+        "dolor": {
+          "expected": null,
+          "got": null,
+          "correct": null,
+          "skip": true
+        },
+        "picor": {
+          "expected": true,
+          "got": true,
+          "correct": true,
+          "skip": false
+        },
+        "tamaño": {
+          "expected": null,
+          "got": null,
+          "correct": null,
+          "skip": true
+        },
+        "sangrado": {
+          "expected": null,
+          "got": null,
+          "correct": null,
+          "skip": true
+        },
+        "color": {
+          "expected": null,
+          "got": null,
+          "correct": null,
+          "skip": true
+        },
+        "duracion": {
+          "expected": null,
+          "got": null,
+          "correct": null,
+          "skip": true
+        }
+      },
+      "case_accuracy": 1.0,
+      "evaluated": 1,
+      "correct": 1
+    },
+    {
+      "id": "SC-04",
+      "question": "sangrado",
+      "text": "Nunca.",
+      "extracted": {
+        "sangrado": {
+          "detected": true,
+          "positive": false
+        }
+      },
+      "model_response": "sangrado: No",
+      "per_symptom": {
+        "dolor": {
+          "expected": null,
+          "got": null,
+          "correct": null,
+          "skip": true
+        },
+        "picor": {
+          "expected": null,
+          "got": null,
+          "correct": null,
+          "skip": true
+        },
+        "tamaño": {
+          "expected": null,
+          "got": null,
+          "correct": null,
+          "skip": true
+        },
+        "sangrado": {
+          "expected": false,
+          "got": false,
+          "correct": true,
+          "skip": false
+        },
+        "color": {
+          "expected": null,
+          "got": null,
+          "correct": null,
+          "skip": true
+        },
+        "duracion": {
+          "expected": null,
+          "got": null,
+          "correct": null,
+          "skip": true
+        }
+      },
+      "case_accuracy": 1.0,
+      "evaluated": 1,
+      "correct": 1
     }
   ]
 }

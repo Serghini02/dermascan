@@ -8,6 +8,7 @@ import os
 import json
 import numpy as np
 import random
+import torch
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
@@ -219,8 +220,15 @@ def evaluate_agent(num_episodes=100, db_path=None):
     }
     total_questions = 0
 
-    # Evaluar con pacientes reales
+    # EVALUACIÓN DETERMINISTA: Sembramos todas las semillas para que no varíe al actualizar
+    random.seed(42)
+    np.random.seed(42)
+    if torch.cuda.is_available(): torch.cuda.manual_seed_all(42)
+    torch.manual_seed(42)
+
+    # Evaluar con pacientes reales (siempre los mismos 50)
     eval_patients = random.sample(patient_data, min(num_episodes, len(patient_data)))
+    random.seed(None) # Restaurar aleatoriedad para el resto del sistema
 
     for patient in eval_patients:
         env.current_patient = patient
