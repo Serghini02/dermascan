@@ -596,7 +596,7 @@ function playTts(text, lang = 'en') {
     if (!text) return;
     const url = `/api/tts?text=${encodeURIComponent(text)}&lang=${lang}`;
     const audio = new Audio(url);
-    audio.playbackRate = 0.85; // Disminuir velocidad
+    audio.playbackRate = 0.95; // Velocidad ligeramente ajustada
     audio.play().catch(e => console.log('Audio play error:', e));
 }
 
