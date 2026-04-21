@@ -222,55 +222,63 @@ def scan_image():
 @app.route('/api/voice/process', methods=['POST'])
 def process_voice():
     """Procesa texto transcrito del paciente."""
-    data = request.json
-    text = data.get("text", "")
-    question_id = data.get("question_id", "")
-    session_id = data.get("session_id") # Identificador persistente
-    
-    if not text.strip():
-        return jsonify({"error": "Texto vacío"}), 400
-    if not session_id:
-        return jsonify({"error": "No se recibió Session ID"}), 400
+    try:
+        data = request.json
+        text = data.get("text", "")
+        question_id = data.get("question_id", "")
+        session_id = data.get("session_id") # Identificador persistente
+        
+        if not text.strip():
+            return jsonify({"error": "Texto vacío"}), 400
+        if not session_id:
+            return jsonify({"error": "No se recibió Session ID"}), 400
 
-    sess = get_session(session_id)
-    
-    # 1. Corrección regex
-    correction = correct_text(text)
+        sess = get_session(session_id)
+        
+        # 1. Corrección regex
+        correction = correct_text(text)
 
-    # 2. Tokenización
-    token_result = tokenizer.tokenize(correction["corrected"])
+        # 2. Tokenización
+        token_result = tokenizer.tokenize(correction["corrected"])
 
-    # 3. Extracción de síntomas
-    symptoms = extract_symptoms(correction["corrected"], context_symptom=question_id)
+        # 3. Extracción de síntomas
+        symptoms = extract_symptoms(correction["corrected"], context_symptom=question_id)
 
-    # 4. Actualizar sesión específica
-    sess["symptoms"].update(symptoms)
-    if question_id:
-        sess["questions_asked"].append(question_id)
+        # 4. Actualizar sesión específica
+        sess["symptoms"].update(symptoms)
+        if question_id:
+            sess["questions_asked"].append(question_id)
 
-    # 5. Construir estado y preguntar al DRL qué hacer después
-    state = _build_state(session_id)
-    drl_pred = dqn_agent.predict(state)
+        # 5. Construir estado y preguntar al DRL qué hacer después
+        state = _build_state(session_id)
+        drl_pred = dqn_agent.predict(state)
 
-    # Aplicar reglas de flujo (Obligar preguntas, evitar repetidas)
-    drl_pred = apply_flow_rules(drl_pred, sess["questions_asked"])
+        # Aplicar reglas de flujo (Obligar preguntas, evitar repetidas)
+        drl_pred = apply_flow_rules(drl_pred, sess["questions_asked"])
 
-    # ¿Es diagnóstico final?
-    is_final = drl_pred["action"] == 6
-    diagnosis = None
-    if is_final:
-        diagnosis = _finalize_diagnosis(session_id)
+        # ¿Es diagnóstico final?
+        is_final = drl_pred["action"] == 6
+        diagnosis = None
+        if is_final:
+            diagnosis = _finalize_diagnosis(session_id)
 
-    return jsonify({
-        "correction": correction,
-        "tokens": token_result,
-        "symptoms": symptoms,
-        "symptom_summary": get_symptom_summary(sess["symptoms"]),
-        "next_action": drl_pred,
-        "next_question": _get_question_text(drl_pred["action"]),
-        "is_final": is_final,
-        "diagnosis": diagnosis,
-    })
+        return jsonify({
+            "correction": correction,
+            "tokens": token_result,
+            "symptoms": symptoms,
+            "symptom_summary": get_symptom_summary(sess["symptoms"]),
+            "next_action": drl_pred,
+            "next_question": _get_question_text(drl_pred["action"]),
+            "is_final": is_final,
+            "diagnosis": diagnosis,
+        })
+
+    except Exception as e:
+        import traceback
+        traceback.print_exc()
+        print(f"[ERROR /api/voice/process] question_id={data.get('question_id','?')} text={data.get('text','?')[:80]}: {e}")
+        return jsonify({"error": str(e)}), 500
+
 
 
 @app.route('/api/nlp/tokenize', methods=['POST'])

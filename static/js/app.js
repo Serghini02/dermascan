@@ -635,12 +635,30 @@ async function sendVoiceResponse(text) {
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ text, question_id: currentQuestionId, session_id: DEVICE_ID }),
         });
-        const data = await res.json();
+
+        // Protección Safari: leer como texto primero y luego parsear
+        const rawText = await res.text();
+        let data;
+        try {
+            data = JSON.parse(rawText);
+        } catch (parseErr) {
+            console.error('Server returned non-JSON response:', rawText.slice(0, 500));
+            container.innerHTML = `<p style="color:var(--red)">Server error (${res.status}). Check logs.</p>`;
+            return;
+        }
+
+        if (!res.ok) {
+            container.innerHTML = `<p style="color:var(--red)">Error ${res.status}: ${data.error || 'Unknown error'}</p>`;
+            return;
+        }
+
         displayNlpResults(data);
     } catch (e) {
+        console.error('sendVoiceResponse error:', e);
         container.innerHTML = `<p>Error: ${e.message}</p>`;
     }
 }
+
 
 function displayNlpResults(data) {
     const container = document.getElementById('nlpResults');
