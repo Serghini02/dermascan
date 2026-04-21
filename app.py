@@ -194,9 +194,10 @@ def scan_image():
 
         # Consultar DRL para la PRIMERA PREGUNTA
         # El DRL se ejecuta de forma síncrona para la primera respuesta
-        state = _build_state(session_id)
+        state = _build_state(sess)
         drl_prediction = dqn_agent.predict(state)
-        # Aquí se aplicarían reglas de flujo necesarias
+        # Aplicar reglas de flujo para forzar que la primera acción sea una pregunta
+        drl_prediction = apply_flow_rules(drl_prediction, [])
         
         return jsonify({
             "status": "in_progress",
