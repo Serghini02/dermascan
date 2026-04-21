@@ -16,7 +16,8 @@ from io import BytesIO
 
 from flask import Flask, render_template, request, jsonify, send_file
 from flask_socketio import SocketIO
-from gtts import gTTS
+import pyttsx3
+import tempfile
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
@@ -315,19 +316,48 @@ def nlp_train():
 
 @app.route('/api/tts')
 def text_to_speech():
-    """Genera audio MP3 usando gTTS."""
+    """Genera audio usando pyttsx3 (local)."""
     text = request.args.get("text", "")
-    lang = request.args.get("lang", "en") # Por defecto inglés
+    lang = request.args.get("lang", "en") # en/es
     if not text:
         return "No text provided", 400
     
     try:
-        tts = gTTS(text=text, lang=lang)
-        fp = BytesIO()
-        tts.write_to_fp(fp)
-        fp.seek(0)
-        return send_file(fp, mimetype='audio/mpeg')
+        # Inicializar engine local
+        engine = pyttsx3.init()
+        
+        # Configurar voz basada en el idioma
+        voices = engine.getProperty('voices')
+        # Intentar encontrar una voz que coincida con el idioma
+        # Por defecto suele haber una en inglés y otra en el idioma del sistema
+        selected_voice = None
+        for voice in voices:
+            if lang.lower() in voice.id.lower() or lang.lower() in voice.languages:
+                selected_voice = voice.id
+                break
+        
+        if selected_voice:
+            engine.setProperty('voice', selected_voice)
+        
+        engine.setProperty('rate', 150) # Velocidad un poco más lenta para claridad
+        
+        # Guardar en archivo temporal
+        with tempfile.NamedTemporaryFile(delete=False, suffix=".wav") as tmp:
+            tmp_path = tmp.name
+            
+        engine.save_to_file(text, tmp_path)
+        engine.runAndWait()
+        
+        # Leer el contenido para enviarlo y borrar el temporal
+        with open(tmp_path, "rb") as f:
+            data = f.read()
+        
+        os.remove(tmp_path)
+        
+        return send_file(BytesIO(data), mimetype='audio/wav')
     except Exception as e:
+        import traceback
+        traceback.print_exc()
         return str(e), 500
 
 

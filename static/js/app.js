@@ -604,7 +604,7 @@ function speakQuestion() {
     const text = document.getElementById('questionText').textContent;
     if (!text) return;
     
-    // Usar gTTS para voz natural en inglés
+    // Usar pyttsx3 para voz local
     playTts(text, 'en');
 }
 
@@ -736,7 +736,7 @@ function displayNlpResults(data) {
             <div class="recommendation">${d.recommendation}</div>
             ${d.symptom_summary ? '<div style="margin-top:10px">' + d.symptom_summary.map(s => `<div class="symptom-item">${s}</div>`).join('') + '</div>' : ''}`;
 
-        // Speak recommendation using gTTS (natural voice in English)
+        // Speak recommendation using pyttsx3 (local voice)
         const cleanRec = d.recommendation.replace(/[⚠️⚡📋✅]/g, '');
         playTts(cleanRec, 'en');
     }
