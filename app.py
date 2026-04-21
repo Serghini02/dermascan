@@ -14,8 +14,9 @@ import numpy as np
 from PIL import Image
 from io import BytesIO
 
-from flask import Flask, render_template, request, jsonify
+from flask import Flask, render_template, request, jsonify, send_file
 from flask_socketio import SocketIO
+from gtts import gTTS
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
@@ -192,10 +193,11 @@ def scan_image():
         threading.Thread(target=background_heavy_analysis, args=(session_id, img_pil, img_bgr, image_b64)).start()
 
         # Consultar DRL para la PRIMERA PREGUNTA
+        # El DRL se ejecuta de forma síncrona para la primera respuesta
         state = _build_state(session_id)
         drl_prediction = dqn_agent.predict(state)
-        drl_prediction = apply_flow_rules(drl_prediction, [])
-
+        # Aquí se aplicarían reglas de flujo necesarias
+        
         return jsonify({
             "status": "in_progress",
             "cnn": cnn_fast,
@@ -203,7 +205,7 @@ def scan_image():
             "next_action": drl_prediction,
             "next_question": _get_question_text(drl_prediction["action"]),
             "symptom_summary": get_symptom_summary({}),
-            "message": "Analizando imagen en detalle..."
+            "message": "Analyzing image in detail..."
         })
 
     except Exception as e:
@@ -297,9 +299,27 @@ def nlp_train():
     """Entrena el extractor de síntomas directamente en la app."""
     try:
         train_symptom_extractor()
-        return jsonify({"status": "success", "message": "Extractor de síntomas entrenado correctamente."})
+        return jsonify({"status": "success", "message": "Symptom extractor trained successfully."})
     except Exception as e:
         return jsonify({"status": "error", "message": str(e)}), 500
+
+
+@app.route('/api/tts')
+def text_to_speech():
+    """Genera audio MP3 usando gTTS."""
+    text = request.args.get("text", "")
+    lang = request.args.get("lang", "en") # Por defecto inglés
+    if not text:
+        return "No text provided", 400
+    
+    try:
+        tts = gTTS(text=text, lang=lang)
+        fp = BytesIO()
+        tts.write_to_fp(fp)
+        fp.seek(0)
+        return send_file(fp, mimetype='audio/mpeg')
+    except Exception as e:
+        return str(e), 500
 
 
 @app.route('/api/nlp/status', methods=['GET'])
@@ -395,7 +415,7 @@ def delete_history(consultation_id):
     success = db.delete_consultation(consultation_id)
     if success:
         return jsonify({"status": "deleted", "id": consultation_id})
-    return jsonify({"error": "Consulta no encontrada"}), 404
+    return jsonify({"error": "Consultation not found"}), 404
 
 
 @app.route('/api/dataset/stats', methods=['GET'])
@@ -408,7 +428,7 @@ def get_evaluation_results():
     """Sirve los resultados existentes."""
     path = os.path.join(os.path.dirname(__file__), "evaluation", "evaluation_results.json")
     if not os.path.exists(path):
-        return jsonify({"error": "No hay resultados. Ejecute la evaluación primero."}), 404
+        return jsonify({"error": "No results. Run the evaluation first."}), 404
     with open(path, "r", encoding="utf-8") as f:
         return jsonify(json.load(f))
 
@@ -447,11 +467,12 @@ def apply_flow_rules(drl_pred, asked_ids_list):
     MIN_QUESTIONS = 6 # Forzar valoración completa de los 6 síntomas principales
 
     curr_action = drl_pred["action"]
+    symptom_ids = ["pain", "itching", "size", "bleeding", "color", "duration"]
     
     # Regla 1: Si intenta diagnosticar pero faltan preguntas, forzar pregunta
     if curr_action in (6, 7) and questions_done < MIN_QUESTIONS:
         next_action_idx = next(
-            (i for i in range(6) if SYMPTOM_QUESTIONS[i]["id"] not in asked_ids),
+            (i for i in range(6) if symptom_ids[i] not in asked_ids),
             6
         )
         drl_pred["action"] = next_action_idx
@@ -459,10 +480,10 @@ def apply_flow_rules(drl_pred, asked_ids_list):
     
     # Regla 2: Evitar repetir preguntas
     elif curr_action <= 5:
-        chosen_id = SYMPTOM_QUESTIONS[curr_action]["id"]
+        chosen_id = symptom_ids[curr_action]
         if chosen_id in asked_ids:
             next_action_idx = next(
-                (i for i in range(6) if SYMPTOM_QUESTIONS[i]["id"] not in asked_ids),
+                (i for i in range(6) if symptom_ids[i] not in asked_ids),
                 6
             )
             drl_pred["action"] = next_action_idx
@@ -486,13 +507,13 @@ def _build_state(sid):
 
 
 def _get_question_text(action):
-    """Obtiene el texto de la pregunta para una acción."""
+    """Obtains the question text for a given action."""
     if action <= 5:
         return SYMPTOM_QUESTIONS[action]["text"]
     elif action == 6:
-        return "El sistema está listo para emitir un diagnóstico."
+        return "The system is ready to provide a diagnosis."
     elif action == 7:
-        return "Se recomienda tomar otra fotografía del lunar."
+        return "It is recommended to take another photograph of the lesion."
     return ""
 
 

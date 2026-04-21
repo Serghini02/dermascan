@@ -26,35 +26,35 @@ CNN_CONFIG = {
     "model_path": os.path.join(MODELS_DIR, "skin_cnn.pth"),
 }
 
-# Clases HAM10000
+# Diagnosis Classes
 DIAGNOSIS_CLASSES = {
-    0: {"code": "akiec", "name": "Queratosis actínica", "risk": "pre-maligno"},
-    1: {"code": "bcc",   "name": "Carcinoma basocelular", "risk": "maligno"},
-    2: {"code": "bkl",   "name": "Queratosis benigna", "risk": "benigno"},
-    3: {"code": "df",    "name": "Dermatofibroma", "risk": "benigno"},
-    4: {"code": "mel",   "name": "Melanoma", "risk": "maligno"},
-    5: {"code": "nv",    "name": "Nevo melanocítico", "risk": "benigno"},
-    6: {"code": "vasc",  "name": "Lesión vascular", "risk": "benigno"},
+    0: {"code": "akiec", "name": "Actinic keratosis", "risk": "pre-malignant"},
+    1: {"code": "bcc",   "name": "Basal cell carcinoma", "risk": "malignant"},
+    2: {"code": "bkl",   "name": "Benign keratosis-like lesions", "risk": "benign"},
+    3: {"code": "df",    "name": "Dermatofibroma", "risk": "benign"},
+    4: {"code": "mel",   "name": "Melanoma", "risk": "malignant"},
+    5: {"code": "nv",    "name": "Melanocytic nevi", "risk": "benign"},
+    6: {"code": "vasc",  "name": "Vascular lesions", "risk": "benign"},
 }
 
 CLASS_TO_IDX = {v["code"]: k for k, v in DIAGNOSIS_CLASSES.items()}
 
 RISK_LEVELS = {
-    "benigno": {"level": 1, "color": "#10b981", "label": "Bajo"},
-    "pre-maligno": {"level": 2, "color": "#f97316", "label": "Medio"},
-    "maligno": {"level": 3, "color": "#ef4444", "label": "Alto"},
+    "benign": {"level": 1, "color": "#10b981", "label": "Low"},
+    "pre-malignant": {"level": 2, "color": "#f97316", "label": "Medium"},
+    "malignant": {"level": 3, "color": "#ef4444", "label": "High"},
 }
 
 # =============================================================================
-# NLP — Síntomas
+# NLP — Symptoms
 # =============================================================================
 SYMPTOM_QUESTIONS = {
-    0: {"id": "dolor",   "text": "¿Sientes dolor o molestia en el lunar?"},
-    1: {"id": "picor",   "text": "¿Te pica o sientes escozor en la zona?"},
-    2: {"id": "tamaño",  "text": "¿Ha cambiado de tamaño recientemente?"},
-    3: {"id": "sangrado","text": "¿Ha sangrado alguna vez?"},
-    4: {"id": "color",   "text": "¿Ha cambiado de color?"},
-    5: {"id": "duracion","text": "¿Desde cuándo lo tienes o has notado cambios?"},
+    0: {"id": "pain",     "text": "Do you feel any pain or discomfort in the lesion?"},
+    1: {"id": "itching",  "text": "Is it itchy or do you feel a burning sensation?"},
+    2: {"id": "size",     "text": "Has it changed in size recently?"},
+    3: {"id": "bleeding", "text": "Has it ever bled?"},
+    4: {"id": "color",    "text": "Has it changed color?"},
+    5: {"id": "duration", "text": "How long have you had it or noticed these changes?"},
 }
 
 # =============================================================================
@@ -72,18 +72,18 @@ DRL_CONFIG = {
     "hidden_size": 128,
     "max_episodes": 500,
     "state_size": 14,   # 7 CNN probs + 6 symptoms + 1 num_questions_asked
-    "action_size": 8,   # 6 preguntas + diagnosticar + pedir otra foto
+    "action_size": 8,   # 6 questions + diagnose + request another photo
 }
 
 ACTION_NAMES = {
-    0: "PREGUNTAR_DOLOR",
-    1: "PREGUNTAR_PICOR",
-    2: "PREGUNTAR_TAMAÑO",
-    3: "PREGUNTAR_SANGRADO",
-    4: "PREGUNTAR_COLOR",
-    5: "PREGUNTAR_DURACIÓN",
-    6: "DIAGNOSTICAR",
-    7: "PEDIR_OTRA_FOTO",
+    0: "ASK_PAIN",
+    1: "ASK_ITCH",
+    2: "ASK_SIZE",
+    3: "ASK_BLEEDING",
+    4: "ASK_COLOR",
+    5: "ASK_DURATION",
+    6: "DIAGNOSE",
+    7: "REQUEST_NEW_PHOTO",
 }
 
 # =============================================================================

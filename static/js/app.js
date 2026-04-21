@@ -11,21 +11,21 @@ const DEVICE_ID = localStorage.getItem('dermascan_device_id');
 
 const socket = io();
 socket.on('connect', () => {
-    console.log('[WS] Conectado. Sala:', DEVICE_ID);
+    console.log('[WS] Connected. Room:', DEVICE_ID);
     socket.emit('join_session', { session_id: DEVICE_ID });
 });
 
 socket.on('scan_progress', data => {
     const scanStatus = document.getElementById('scan-status-text');
     if (scanStatus) {
-        scanStatus.innerHTML = `<span class="spinner-small"></span> Analizando lunar: <strong>${data.progress}%</strong> completado...`;
+        scanStatus.innerHTML = `<span class="spinner-small"></span> Analyzing mole: <strong>${data.progress}%</strong> completed...`;
     }
 });
 
 socket.on('scan_complete', data => {
     const scanStatus = document.getElementById('scan-status-text');
     if (scanStatus) {
-        scanStatus.innerHTML = '<span style="color:var(--success)">✓ Análisis finalizado.</span>';
+        scanStatus.innerHTML = '<span style="color:var(--success)">✓ Analysis complete.</span>';
     }
     displayScanResults(data);
     loadHistory();
@@ -390,12 +390,12 @@ async function sendScan(imageData) {
     try {
         switchTab('nlp');
         const questionText = document.getElementById('questionText');
-        questionText.innerHTML = '<span class="spinner-small"></span> Preparando preguntas...';
+        questionText.innerHTML = '<span class="spinner-small"></span> Preparing questions...';
         
         scanResults.style.display = 'block';
         scanResults.innerHTML = `
             <div id="scan-status-text" class="status-msg" style="margin-bottom:15px; background:var(--bg-card); padding:10px; border-radius:8px; border-left:4px solid var(--accent)">
-                <span class="spinner-small"></span> Iniciando escáner de consenso (300 pasadas)...
+                <span class="spinner-small"></span> Starting consensus scanner (300 passes)...
             </div>
             <div id="fast-results-preview"></div>
         `;
@@ -417,7 +417,7 @@ async function sendScan(imageData) {
             questionText.textContent = data.next_question;
             if (data.next_action) {
                 currentQuestionId = data.next_action.action <= 5 ? 
-                    ['dolor','picor','tamaño','sangrado','color','duracion'][data.next_action.action] : '';
+                    ['pain','itching','size','bleeding','color','duration'][data.next_action.action] : '';
             }
             speakQuestion();
         }
@@ -454,9 +454,9 @@ function displayScanResults(data) {
         container.innerHTML = `
             <div class="empty-state" style="padding:40px; text-align:center">
                 <span class="spinner"></span>
-                <h3 style="margin-top:20px">Análisis listo, esperando consulta clínico...</h3>
-                <p>Por favor, completa las preguntas en la pestaña "Consulta por Voz" para ver el diagnóstico final.</p>
-                <button class="btn btn-accent" style="margin-top:20px" onclick="switchTab('nlp')">Ir a responder →</button>
+                <h3 style="margin-top:20px">Analysis ready, awaiting clinical interview...</h3>
+                <p>Please complete the questions in the "NLP + Voice" tab to see the final diagnosis.</p>
+                <button class="btn btn-accent" style="margin-top:20px" onclick="switchTab('nlp')">Go to interview →</button>
             </div>
         `;
         return;
@@ -464,22 +464,22 @@ function displayScanResults(data) {
 
     const cnn = data.cnn;
     const abcde = data.abcde;
-    const riskClass = cnn.risk_level === 'maligno' ? 'alto' : cnn.risk_level === 'pre-maligno' ? 'medio' : 'bajo';
+    const riskClass = cnn.risk_level === 'malignant' ? 'alto' : cnn.risk_level === 'pre-malignant' ? 'medio' : 'bajo';
 
     let html = `
         <div class="cnn-result risk-${riskClass}">
             <div style="display:flex;justify-content:space-between;align-items:center">
                 <span class="diagnosis-name">${cnn.diagnosis_name}</span>
-                <span class="risk-badge ${riskClass}">${cnn.risk_label} riesgo</span>
+                <span class="risk-badge ${riskClass}">${cnn.risk_label} risk</span>
             </div>
             <div style="margin-top:6px;font-size:0.85rem;color:var(--text-secondary)">
-                Consenso (300 pasadas): ${(cnn.confidence * 100).toFixed(1)}% de precisión
+                Consensus (300 passes): ${(cnn.confidence * 100).toFixed(1)}% confidence
             </div>
         </div>`;
 
     // Probability bars
     html += '<div style="margin-bottom:16px">';
-    const riskColors = { benigno: 'var(--green)', 'pre-maligno': 'var(--orange)', maligno: 'var(--red)' };
+    const riskColors = { benign: 'var(--green)', 'pre-malignant': 'var(--orange)', malignant: 'var(--red)' };
     for (const [code, info] of Object.entries(cnn.probabilities)) {
         const pct = (info.probability * 100).toFixed(1);
         const color = riskColors[info.risk] || 'var(--blue)';
@@ -493,14 +493,14 @@ function displayScanResults(data) {
 
     // ABCDE Analysis
     const abcdeLetters = [
-        { key: 'asymmetry', letter: 'A', label: 'Asimetría' },
-        { key: 'border', letter: 'B', label: 'Bordes' },
+        { key: 'asymmetry', letter: 'A', label: 'Asymmetry' },
+        { key: 'border', letter: 'B', label: 'Borders' },
         { key: 'color', letter: 'C', label: 'Color' },
-        { key: 'diameter', letter: 'D', label: 'Diámetro' },
-        { key: 'evolution', letter: 'E', label: 'Evolución' },
+        { key: 'diameter', letter: 'D', label: 'Diameter' },
+        { key: 'evolution', letter: 'E', label: 'Evolution' },
     ];
 
-    html += '<h3 style="font-size:0.9rem;margin-bottom:8px">Análisis ABCDE</h3>';
+    html += '<h3 style="font-size:0.9rem;margin-bottom:8px">ABCDE Analysis</h3>';
     html += '<div class="abcde-grid">';
     for (const item of abcdeLetters) {
         const score = abcde[item.key]?.score || 0;
@@ -516,21 +516,23 @@ function displayScanResults(data) {
     // Total ABCDE
     const totalColor = abcde.total_score > 6 ? 'var(--red)' : abcde.total_score > 3 ? 'var(--orange)' : 'var(--green)';
     html += `<div style="text-align:center;margin-top:10px;font-size:0.85rem">
-        Puntuación ABCDE total: <strong style="color:${totalColor};font-size:1.1rem">${abcde.total_score}/10</strong>
+        Total ABCDE score: <strong style="color:${totalColor};font-size:1.1rem">${abcde.total_score}/10</strong>
     </div>`;
 
     // Next question from DRL
     if (data.next_question) {
         html += `<div class="question-box" style="margin-top:16px">
-            <div class="question-label">Siguiente paso sugerido por IA:</div>
+            <div class="question-label">Next step suggested by AI:</div>
             <div class="question-text">${data.next_question}</div>
-            <button class="btn btn-accent" onclick="switchTab('nlp')">Ir a consulta por voz →</button>
+            <button class="btn btn-accent" onclick="switchTab('nlp')">Go to voice interview →</button>
         </div>`;
 
         // Update NLP tab question
-        document.getElementById('questionText').textContent = data.next_question;
-        currentQuestionId = data.next_action.action <= 5 ? 
-            ['dolor','picor','tamaño','sangrado','color','duracion'][data.next_action.action] : '';
+        document.getElementById('questionText').textContent = data.next_question || 'Ready for evaluation';
+        if (data.next_action && typeof data.next_action.action !== 'undefined') {
+            const symptomIds = ['pain', 'itching', 'size', 'bleeding', 'color', 'duration'];
+            currentQuestionId = data.next_action.action <= 5 ? symptomIds[data.next_action.action] : '';
+        }
         document.getElementById('btnSpeak').disabled = false;
         document.getElementById('btnMic').disabled = false;
     }
@@ -551,7 +553,7 @@ function initSpeechRecognition() {
         return;
     }
     recognition = new SpeechRecognition();
-    recognition.lang = 'es-ES';
+    recognition.lang = 'en-US';
     recognition.continuous = false;
     recognition.interimResults = true;
 
@@ -564,7 +566,7 @@ function initSpeechRecognition() {
         isListening = false;
         document.getElementById('btnMic').classList.remove('recording');
         document.getElementById('micIcon').textContent = '🎙️';
-        document.getElementById('micLabel').textContent = 'Pulsa para hablar';
+        document.getElementById('micLabel').textContent = 'Press to speak';
     };
     recognition.onerror = (e) => {
         console.log('Speech error:', e.error);
@@ -576,7 +578,7 @@ function initSpeechRecognition() {
 function toggleListening() {
     if (!recognition) initSpeechRecognition();
     if (!recognition) {
-        alert('Tu navegador no soporta reconocimiento de voz. Usa el campo de texto.');
+        alert('Your browser does not support voice recognition. Please use the text field.');
         return;
     }
     if (isListening) {
@@ -586,17 +588,23 @@ function toggleListening() {
         isListening = true;
         document.getElementById('btnMic').classList.add('recording');
         document.getElementById('micIcon').textContent = '⏹️';
-        document.getElementById('micLabel').textContent = 'Escuchando... Pulsa para parar';
+        document.getElementById('micLabel').textContent = 'Listening... Press to stop';
     }
+}
+
+function playTts(text, lang = 'en') {
+    if (!text) return;
+    const url = `/api/tts?text=${encodeURIComponent(text)}&lang=${lang}`;
+    const audio = new Audio(url);
+    audio.play().catch(e => console.log('Audio play error:', e));
 }
 
 function speakQuestion() {
     const text = document.getElementById('questionText').textContent;
-    if (!text || !window.speechSynthesis) return;
-    const utterance = new SpeechSynthesisUtterance(text);
-    utterance.lang = 'es-ES';
-    utterance.rate = 0.9;
-    speechSynthesis.speak(utterance);
+    if (!text) return;
+    
+    // Usar gTTS para voz natural en inglés
+    playTts(text, 'en');
 }
 
 async function processResponse() {
@@ -618,7 +626,7 @@ async function sendQuickAnswer(text) {
 
 async function sendVoiceResponse(text) {
     const container = document.getElementById('nlpResults');
-    container.innerHTML = '<div class="empty-state"><span class="spinner"></span><p>Procesando...</p></div>';
+    container.innerHTML = '<div class="empty-state"><span class="spinner"></span><p>Processing...</p></div>';
 
     try {
         const res = await fetch('/api/voice/process', {
@@ -640,7 +648,7 @@ function displayNlpResults(data) {
     // Correction
     if (data.correction && data.correction.total_corrections > 0) {
         html += `<div style="margin-bottom:16px">
-            <h3 style="font-size:0.85rem;margin-bottom:6px">✏️ Corrección (${data.correction.total_corrections})</h3>
+            <h3 style="font-size:0.85rem;margin-bottom:6px">✏️ Correction (${data.correction.total_corrections})</h3>
             <div style="font-size:0.85rem;padding:10px;background:#f0fdf4;border:1px solid #bbf7d0;border-radius:8px;color:#166534">${data.correction.corrected}</div>`;
         data.correction.corrections.forEach(c => {
             if (c.original && c.original !== c.corrected) {
@@ -654,7 +662,7 @@ function displayNlpResults(data) {
     // Tokens
     if (data.tokens) {
         html += `<div style="margin-bottom:16px">
-            <h3 style="font-size:0.85rem;margin-bottom:6px">🔤 Tokenización (${data.tokens.stats.total_tokens} tokens, ${data.tokens.stats.medical_terms} médicos)</h3>
+            <h3 style="font-size:0.85rem;margin-bottom:6px">🔤 Tokenization (${data.tokens.stats.total_tokens} tokens, ${data.tokens.stats.medical_terms} medical)</h3>
             <div class="token-container">`;
         data.tokens.token_details.forEach(t => {
             const cls = t.is_medical ? 'medical' : t.is_stopword ? 'stopword' : 'normal';
@@ -676,10 +684,12 @@ function displayNlpResults(data) {
     if (data.next_question) {
         document.getElementById('questionText').textContent = data.next_question;
         if (quickAnswers) quickAnswers.style.display = 'flex';
-        if (data.next_action) {
-            currentQuestionId = data.next_action.action <= 5 ? 
-                ['dolor','picor','tamaño','sangrado','color','duracion'][data.next_action.action] : '';
+        if (data.next_action && typeof data.next_action.action !== 'undefined') {
+            const symptomIds = ['pain', 'itching', 'size', 'bleeding', 'color', 'duration'];
+            currentQuestionId = data.next_action.action <= 5 ? symptomIds[data.next_action.action] : '';
         }
+        // Read the new question aloud
+        speakQuestion();
     } else {
         if (quickAnswers) quickAnswers.style.display = 'none';
     }
@@ -700,22 +710,19 @@ function displayNlpResults(data) {
         diagDiv.className = `diagnosis-result risk-${riskClass}`;
         diagDiv.innerHTML = `
             <div class="big-diagnosis">${d.diagnosis}</div>
-            <span class="risk-badge ${riskClass}">${d.risk_label} riesgo</span>
+            <span class="risk-badge ${riskClass}">${d.risk_label} risk</span>
             <div style="margin-top:8px;font-size:0.85rem">
-                Confianza CNN: ${(d.confidence * 100).toFixed(1)}% | ABCDE: ${d.abcde_total}/10
+                CNN Confidence: ${(d.confidence * 100).toFixed(1)}% | ABCDE: ${d.abcde_total}/10
             </div>
             <div class="recommendation">${d.recommendation}</div>
             ${d.symptom_summary ? '<div style="margin-top:10px">' + d.symptom_summary.map(s => `<div class="symptom-item">${s}</div>`).join('') + '</div>' : ''}`;
 
-        // Speak recommendation
-        if (window.speechSynthesis) {
-            const msg = new SpeechSynthesisUtterance(d.recommendation.replace(/[⚠️⚡📋✅]/g, ''));
-            msg.lang = 'es-ES'; msg.rate = 0.85;
-            speechSynthesis.speak(msg);
-        }
+        // Speak recommendation using gTTS (natural voice in English)
+        const cleanRec = d.recommendation.replace(/[⚠️⚡📋✅]/g, '');
+        playTts(cleanRec, 'en');
     }
 
-    container.innerHTML = html || '<div class="empty-state"><p>Sin cambios detectados</p></div>';
+    container.innerHTML = html || '<div class="empty-state"><p>No changes detected</p></div>';
 }
 
 // =============================================================================
@@ -735,12 +742,12 @@ function initCharts() {
     rewardChart = new Chart(document.getElementById('rewardChart'), {
         type: 'line', data: {
             labels: [], datasets: [
-                { label: 'Reward por episodio', data: [], borderColor: '#0d9488', backgroundColor: 'rgba(13,148,136,0.08)', borderWidth: 1, fill: true, tension: 0.1, pointRadius: 0 },
-                { label: 'Media móvil (50)', data: [], borderColor: '#3b82f6', borderWidth: 2, borderDash: [5, 5], fill: false, tension: 0.3, pointRadius: 0 },
+                { label: 'Reward per episode', data: [], borderColor: '#0d9488', backgroundColor: 'rgba(13,148,136,0.08)', borderWidth: 1, fill: true, tension: 0.1, pointRadius: 0 },
+                { label: 'Moving average (50)', data: [], borderColor: '#3b82f6', borderWidth: 2, borderDash: [5, 5], fill: false, tension: 0.3, pointRadius: 0 },
             ]
         }, options: { ...opts, 
             scales: { ...opts.scales, y: { ...opts.scales.y, beginAtZero: false, suggestedMin: 0 } },
-            plugins: { ...opts.plugins, title: { display: true, text: 'Recompensas del Agente', color: '#1a202c' } } 
+            plugins: { ...opts.plugins, title: { display: true, text: 'Agent Rewards', color: '#1a202c' } } 
         },
     });
     lossChart = new Chart(document.getElementById('lossChart'), {
@@ -750,7 +757,7 @@ function initCharts() {
             ]
         }, options: { ...opts, 
             scales: { ...opts.scales, y: { ...opts.scales.y, beginAtZero: true } },
-            plugins: { ...opts.plugins, title: { display: true, text: 'Pérdida del Entrenamiento', color: '#1a202c' } } 
+            plugins: { ...opts.plugins, title: { display: true, text: 'Training Loss', color: '#1a202c' } } 
         },
     });
 
@@ -788,20 +795,20 @@ async function loadChartsFromHistory() {
 }
 
 async function loadEvaluation() {
-    document.getElementById('evalContent').innerHTML = '<span class="spinner"></span> Evaluando...';
+    document.getElementById('evalContent').innerHTML = '<span class="spinner"></span> Evaluating...';
     try {
         const r = await (await fetch('/api/rl/evaluate')).json();
         if (r.error) { document.getElementById('evalContent').textContent = r.error; return; }
         document.getElementById('evalContent').innerHTML = `
             <div class="eval-grid">
-                <div class="eval-item"><span class="eval-item-label">Accuracy diagnóstico</span><span class="eval-item-value ${r.accuracy > 70 ? 'good' : r.accuracy > 40 ? 'warn' : 'bad'}">${r.accuracy}%</span></div>
+                <div class="eval-item"><span class="eval-item-label">Diagnostic accuracy</span><span class="eval-item-value ${r.accuracy > 70 ? 'good' : r.accuracy > 40 ? 'warn' : 'bad'}">${r.accuracy}%</span></div>
                 <div class="eval-item"><span class="eval-item-label">Accuracy riesgo</span><span class="eval-item-value ${r.risk_accuracy > 70 ? 'good' : 'warn'}">${r.risk_accuracy}%</span></div>
                 <div class="eval-item"><span class="eval-item-label">Reward medio</span><span class="eval-item-value ${r.avg_reward > 0 ? 'good' : 'bad'}">${r.avg_reward}</span></div>
-                <div class="eval-item"><span class="eval-item-label">Preguntas/sesión</span><span class="eval-item-value">${r.avg_questions}</span></div>
+                <div class="eval-item"><span class="eval-item-label">Questions/session</span><span class="eval-item-value">${r.avg_questions}</span></div>
                 <div class="eval-item"><span class="eval-item-label">Falsos negativos</span><span class="eval-item-value bad">${r.false_negatives}</span></div>
                 <div class="eval-item"><span class="eval-item-label">Falsos positivos</span><span class="eval-item-value warn">${r.false_positives}</span></div>
             </div>`;
-    } catch (e) { document.getElementById('evalContent').textContent = 'Error al cargar métricas'; }
+    } catch (e) { document.getElementById('evalContent').textContent = 'Error loading metrics'; }
 }
 
 async function loadAgentStatus() {
@@ -809,10 +816,10 @@ async function loadAgentStatus() {
         const d = await (await fetch('/api/rl/status')).json();
         document.getElementById('agentStatusContent').innerHTML = `
             <div class="eval-grid" style="grid-template-columns:repeat(4,1fr)">
-                <div class="eval-item"><span class="eval-item-label">Modelo</span><span class="eval-item-value ${d.model_loaded ? 'good' : 'bad'}">${d.model_loaded ? '✅ Cargado' : '❌ No cargado'}</span></div>
+                <div class="eval-item"><span class="eval-item-label">Model</span><span class="eval-item-value ${d.model_loaded ? 'good' : 'bad'}">${d.model_loaded ? '✅ Loaded' : '❌ Not loaded'}</span></div>
                 <div class="eval-item"><span class="eval-item-label">Epsilon</span><span class="eval-item-value">${d.epsilon.toFixed(4)}</span></div>
-                <div class="eval-item"><span class="eval-item-label">Steps totales</span><span class="eval-item-value">${d.steps_done.toLocaleString()}</span></div>
-                <div class="eval-item"><span class="eval-item-label">Episodios</span><span class="eval-item-value">${d.episodes_trained.toLocaleString()}</span></div>
+                <div class="eval-item"><span class="eval-item-label">Total steps</span><span class="eval-item-value">${d.steps_done.toLocaleString()}</span></div>
+                <div class="eval-item"><span class="eval-item-label">Episodes</span><span class="eval-item-value">${d.episodes_trained.toLocaleString()}</span></div>
             </div>`;
 
         // Si tenemos datos del último entrenamiento, rellenamos el panel de evaluación real
@@ -829,15 +836,15 @@ async function loadAgentStatus() {
                 } catch(e) {}
 
                 evalContent.innerHTML = `
-                    <div style="font-weight:700; color:var(--text-secondary); margin-bottom:10px; font-size:0.8rem; text-transform:uppercase; letter-spacing:0.5px">Rendimiento del Sistema</div>
+                    <div style="font-weight:700; color:var(--text-secondary); margin-bottom:10px; font-size:0.8rem; text-transform:uppercase; letter-spacing:0.5px">System Performance</div>
                     <div class="eval-grid" style="margin-bottom:20px">
                         <div class="eval-item"><span class="eval-item-label">DQN ACC (TEST)</span><span class="eval-item-value good">94%</span></div>
-                        <div class="eval-item"><span class="eval-item-label">NLP ACC (SÍNTOMAS)</span><span class="eval-item-value good">${nlpAccTxt}</span></div>
+                        <div class="eval-item"><span class="eval-item-label">NLP ACC (SYMPTOMS)</span><span class="eval-item-value good">${nlpAccTxt}</span></div>
                         <div class="eval-item"><span class="eval-item-label">AVG REWARD (EPS)</span><span class="eval-item-value good">${lt.final_avg_reward.toFixed(2)}</span></div>
-                        <div class="eval-item"><span class="eval-item-label">ÉPOCAS S/DB</span><span class="eval-item-value">${lt.epochs_over_db}x</span></div>
+                        <div class="eval-item"><span class="eval-item-label">EPOCHS/DB</span><span class="eval-item-value">${lt.epochs_over_db}x</span></div>
                     </div>
 
-                    <div style="font-weight:700; color:var(--text-secondary); margin-bottom:10px; font-size:0.8rem; text-transform:uppercase; letter-spacing:0.5px">Parámetros del Modelo (Hiperparámetros)</div>
+                    <div style="font-weight:700; color:var(--text-secondary); margin-bottom:10px; font-size:0.8rem; text-transform:uppercase; letter-spacing:0.5px">Model Hyperparameters</div>
                     <div class="eval-grid" style="margin-bottom:20px">
                         <div class="eval-item"><span class="eval-item-label">LEARNING RATE</span><span class="eval-item-value" style="color:var(--blue)">${d.config?.lr || '1e-3'}</span></div>
                         <div class="eval-item"><span class="eval-item-label">GAMMA (DF)</span><span class="eval-item-value" style="color:var(--blue)">${d.config?.gamma || '0.99'}</span></div>
@@ -846,15 +853,15 @@ async function loadAgentStatus() {
                     </div>
 
                     <div class="eval-grid">
-                        <div class="eval-item"><span class="eval-item-label">TOTAL PACIENTES</span><span class="eval-item-value">${lt.total_patients_in_db.toLocaleString()}</span></div>
-                        <div class="eval-item"><span class="eval-item-label">TOTAL EPISODIOS</span><span class="eval-item-value">${d.episodes_trained.toLocaleString()}</span></div>
+                        <div class="eval-item"><span class="eval-item-label">TOTAL PATIENTS</span><span class="eval-item-value">${lt.total_patients_in_db.toLocaleString()}</span></div>
+                        <div class="eval-item"><span class="eval-item-label">TOTAL EPISODES</span><span class="eval-item-value">${d.episodes_trained.toLocaleString()}</span></div>
                     </div>
                     <div style="font-size:0.75rem; color:var(--text-secondary); margin-top:15px; text-align:right italic">
-                        * Sincronizado con el último checkpoint guardado en el servidor ariarca.
+                        * Synced with the latest checkpoint saved on the ariarca server.
                     </div>`;
             }
         }
-    } catch (e) { console.error(e); document.getElementById('agentStatusContent').textContent = 'Error al conectar con el servidor'; }
+    } catch (e) { console.error(e); document.getElementById('agentStatusContent').textContent = 'Error connecting to server'; }
 }
 
 // =============================================================================
@@ -862,40 +869,41 @@ async function loadAgentStatus() {
 // =============================================================================
 async function loadHistory() {
     const list = document.getElementById('historyList');
-    list.innerHTML = '<div class="empty-state"><span class="spinner"></span><p>Cargando historial...</p></div>';
+    list.innerHTML = '<div class="empty-state"><span class="spinner"></span><p>Loading history...</p></div>';
     try {
         const data = await (await fetch('/api/history?limit=50')).json();
         if (!data.length) {
-            list.innerHTML = '<div class="empty-state"><span class="empty-icon">📋</span><p>Aún no hay consultas registradas</p></div>';
+            list.innerHTML = '<div class="empty-state"><span class="empty-icon">📋</span><p>No consultations recorded yet</p></div>';
             return;
         }
 
         const filterBar = `
             <div style="display:flex;gap:8px;margin-bottom:16px;flex-wrap:wrap;align-items:center">
-                <span style="font-size:0.8rem;font-weight:600;color:var(--text-secondary)">Filtrar:</span>
-                <button class="btn btn-secondary" style="padding:4px 12px;font-size:0.78rem" onclick="filterHistory('all')">Todos</button>
-                <button class="btn btn-secondary" style="padding:4px 12px;font-size:0.78rem;border-color:var(--green);color:var(--green)" onclick="filterHistory('benigno')">🟢 Bajo</button>
-                <button class="btn btn-secondary" style="padding:4px 12px;font-size:0.78rem;border-color:var(--orange);color:var(--orange)" onclick="filterHistory('pre-maligno')">🟠 Medio</button>
-                <button class="btn btn-secondary" style="padding:4px 12px;font-size:0.78rem;border-color:var(--red);color:var(--red)" onclick="filterHistory('maligno')">🔴 Alto</button>
-                <button class="btn btn-secondary" style="padding:4px 12px;font-size:0.78rem;margin-left:auto" onclick="exportHistoryCSV()" title="Exportar historial">📊 Exportar CSV</button>
+                <span style="font-size:0.8rem;font-weight:600;color:var(--text-secondary)">Filter:</span>
+                <button class="btn btn-secondary" style="padding:4px 12px;font-size:0.78rem" onclick="filterHistory('all')">All</button>
+                <button class="btn btn-secondary" style="padding:4px 12px;font-size:0.78rem;border-color:var(--green);color:var(--green)" onclick="filterHistory('benigno')">🟢 Low</button>
+                <button class="btn btn-secondary" style="padding:4px 12px;font-size:0.78rem;border-color:var(--orange);color:var(--orange)" onclick="filterHistory('pre-maligno')">🟠 Medium</button>
+                <button class="btn btn-secondary" style="padding:4px 12px;font-size:0.78rem;border-color:var(--red);color:var(--red)" onclick="filterHistory('maligno')">🔴 High</button>
+                <button class="btn btn-secondary" style="padding:4px 12px;font-size:0.78rem;margin-left:auto" onclick="exportHistoryCSV()" title="Export history">📊 Export CSV</button>
             </div>`;
 
         const cards = data.map(c => {
             const riskClass = c.risk_level === 'maligno' ? 'alto' : c.risk_level === 'pre-maligno' ? 'medio' : 'bajo';
-            const dateStr  = c.timestamp ? new Date(c.timestamp).toLocaleString('es-ES', {day:'2-digit',month:'short',year:'numeric',hour:'2-digit',minute:'2-digit'}) : '—';
+            const dateStr  = c.timestamp ? new Date(c.timestamp).toLocaleString('en-US', {day:'2-digit',month:'short',year:'numeric',hour:'2-digit',minute:'2-digit'}) : '—';
             const imgHtml  = c.image_data
-                ? `<img src="data:image/jpeg;base64,${c.image_data}" alt="Lunar" class="history-thumb" onclick="openImageModal('${c.image_data}')" title="Ampliar imagen">`
+                ? `<img src="data:image/jpeg;base64,${c.image_data}" alt="Mole" class="history-thumb" onclick="openImageModal('${c.image_data}')" title="Enlarge image">`
                 : `<div class="history-thumb-placeholder">🔬</div>`;
 
             let sympHtml = '';
             if (c.symptoms) {
                 const syms = typeof c.symptoms === 'string' ? JSON.parse(c.symptoms) : c.symptoms;
                 const icons = {dolor:'🔴',picor:'🟠','tamaño':'📏',sangrado:'💧',color:'🎨',duracion:'📅'};
+                const labels = {dolor:'Pain',picor:'Itch',tamaño:'Size',sangrado:'Bleed',color:'Color',duracion:'Duration'};
                 sympHtml = '<div style="display:flex;flex-wrap:wrap;gap:4px;margin-top:8px">' +
                     Object.entries(syms).map(([k,v]) => {
                         if (!v || v.positive === null || v.positive === undefined) return '';
                         const val = v.positive === true ? '✅' : v.positive === false ? '❌' : '❓';
-                        return `<span style="font-size:0.68rem;padding:2px 6px;background:#f1f5f9;border-radius:6px;">${icons[k]||''} ${k}: ${val}</span>`;
+                        return `<span style="font-size:0.68rem;padding:2px 6px;background:#f1f5f9;border-radius:6px;">${icons[k]||''} ${labels[k]||k}: ${val}</span>`;
                     }).join('') + '</div>';
             }
 
@@ -910,7 +918,7 @@ async function loadHistory() {
                         </div>
                         <div style="display:flex;gap:6px;align-items:center">
                             <span class="risk-badge ${riskClass}">${riskClass}</span>
-                            <button class="btn-delete-history" onclick="deleteConsultation(${c.id}, this)" title="Eliminar consulta">🗑️</button>
+                            <button class="btn-delete-history" onclick="deleteConsultation(${c.id}, this)" title="Delete consultation">🗑️</button>
                         </div>
                     </div>
                     <div style="font-size:0.78rem;color:var(--text-secondary);margin-top:6px;line-height:1.4">${c.final_recommendation ? esc(c.final_recommendation.slice(0,110))+'…' : ''}</div>
@@ -932,7 +940,7 @@ function filterHistory(risk) {
 }
 
 async function deleteConsultation(id, btnEl) {
-    if (!confirm('¿Eliminar esta consulta del historial?')) return;
+    if (!confirm('Delete this consultation from history?')) return;
     const card = btnEl.closest('.history-card');
     card.style.opacity = '0.4';
     card.style.pointerEvents = 'none';
@@ -946,7 +954,7 @@ async function deleteConsultation(id, btnEl) {
         } else {
             card.style.opacity = '1';
             card.style.pointerEvents = 'auto';
-            alert('Error al eliminar la consulta.');
+            alert('Error deleting consultation.');
         }
     } catch (e) {
         card.style.opacity = '1';
@@ -967,8 +975,8 @@ function openImageModal(b64) {
 
 function exportHistoryCSV() {
     const cards = document.querySelectorAll('.history-card');
-    if (!cards.length) { alert('No hay datos para exportar.'); return; }
-    let csv = 'ID,Diagnóstico,Riesgo,Fecha\n';
+    if (!cards.length) { alert('No data to export.'); return; }
+    let csv = 'ID,Diagnosis,Risk,Date\n';
     cards.forEach(c => {
         const id   = c.dataset.id || '';
         const diag = c.querySelector('.history-diagnosis')?.textContent?.trim() || '';
@@ -978,7 +986,7 @@ function exportHistoryCSV() {
     });
     const a = document.createElement('a');
     a.href = 'data:text/csv;charset=utf-8,\uFEFF' + encodeURIComponent(csv);
-    a.download = `dermascan_historial_${new Date().toISOString().split('T')[0]}.csv`;
+    a.download = `dermascan_history_${new Date().toISOString().split('T')[0]}.csv`;
     a.click();
 }
 
@@ -995,10 +1003,10 @@ async function loadEvaluationSection() {
         const badge = document.getElementById('nlpStatusBadge');
         if (badge) {
             if (st.is_trained) {
-                badge.textContent = `✅ MODELO ENTRENADO · ${st.num_symptoms} síntomas`;
+                badge.textContent = `✅ MODEL TRAINED · ${st.num_symptoms} symptoms`;
                 badge.style.cssText = 'background:var(--green-light);color:var(--green);border:1px solid rgba(22,163,74,0.3);padding:4px 12px;border-radius:12px;font-size:0.75rem;font-weight:700';
             } else {
-                badge.textContent = '⚠️ Modelo no entrenado — Usa el botón de arriba';
+                badge.textContent = '⚠️ Model not trained — Use the button above';
                 badge.style.cssText = 'background:var(--orange-light);color:var(--orange);border:1px solid rgba(234,88,12,0.3);padding:4px 12px;border-radius:12px;font-size:0.75rem;font-weight:700';
             }
         }
@@ -1015,7 +1023,7 @@ async function trainNlpModel() {
     const btn = document.getElementById('btnTrainModel');
     const orig = btn.innerHTML;
     btn.disabled = true;
-    btn.innerHTML = '<span class="spinner-small"></span> Entrenando modelo...';
+    btn.innerHTML = '<span class="spinner-small"></span> Training model...';
     try {
         const res = await fetch('/api/nlp/train', { method: 'POST' });
         const data = await res.json();
@@ -1026,7 +1034,7 @@ async function trainNlpModel() {
             alert('Error: ' + data.message);
         }
     } catch(e) {
-        alert('Error de conexión al entrenar: ' + e.message);
+        alert('Connection error during training: ' + e.message);
     } finally {
         btn.disabled = false;
         btn.innerHTML = orig;
@@ -1037,7 +1045,7 @@ async function triggerEvaluation() {
     const btn = document.getElementById('btnRunEval');
     const originalText = btn.innerHTML;
     btn.disabled = true;
-    btn.innerHTML = '<span class="spinner-small"></span> Ejecutando Test...';
+    btn.innerHTML = '<span class="spinner-small"></span> Running Test...';
 
     try {
         const res = await fetch('/api/evaluation/run', { method: 'POST' });
@@ -1051,7 +1059,7 @@ async function triggerEvaluation() {
         }
     } catch (e) {
         console.error(e);
-        alert("Fallo en la conexión con el servidor");
+        alert("Failed to connect to server");
     } finally {
         btn.disabled = false;
         btn.innerHTML = originalText;
@@ -1080,7 +1088,7 @@ function displayEvalData(data) {
                 <td style="padding: 12px; font-style: italic; font-size: 0.85rem">"${c.text}"</td>
                 <td style="padding: 12px">
                     <span class="badge ${isOk ? 'badge-success' : 'badge-danger'}">
-                        ${isOk ? 'ACIERTO' : 'FALLO'}
+                        ${isOk ? 'PASS' : 'FAIL'}
                     </span>
                 </td>
             </tr>
@@ -1092,12 +1100,12 @@ function displayEvalData(data) {
 }
 
 function renderEvalCharts(metrics) {
-    const keys = ["dolor", "picor", "tamaño", "sangrado", "color", "duracion"];
-    const labels = ["Dolor", "Picor", "Tamaño", "Sangrado", "Color", "Duración"];
+    const keys = ["pain", "itching", "size", "bleeding", "color", "duration"];
+    const labels = ["Pain", "Itching", "Size", "Bleeding", "Color", "Duration"];
     
-    const precisionData = keys.map(k => metrics[k].precision);
-    const recallData = keys.map(k => metrics[k].recall);
-    const f1Data = keys.map(k => metrics[k].f1);
+    const precisionData = keys.map(k => metrics[k] ? metrics[k].Prec || 0 : 0);
+    const recallData = keys.map(k => metrics[k] ? metrics[k].Rec || 0 : 0);
+    const f1Data = keys.map(k => metrics[k] ? metrics[k].F1 || 0 : 0);
 
     // BARRAS
     if (evalBarChart) evalBarChart.destroy();

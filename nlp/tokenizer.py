@@ -1,48 +1,64 @@
 """
-Tokenizador personalizado para español médico/dermatológico.
-Incluye tokenización por palabras, limpieza, y vocabulario médico.
+Custom tokenizer for clinical dermatological text in English.
+Includes word tokenization, cleaning, and medical vocabulary.
 """
 
 import re
 from collections import Counter
 
 
-# Vocabulario médico dermatológico
+# Dermatological medical vocabulary
 MEDICAL_VOCAB = {
-    # Síntomas
-    "dolor", "picor", "escozor", "ardor", "molestia", "inflamación",
-    "hinchazón", "enrojecimiento", "sangrado", "supuración", "comezón",
-    # Tipos de lesión
-    "lunar", "nevo", "melanoma", "carcinoma", "queratosis", "lesión",
-    "mancha", "verruga", "peca", "dermatofibroma", "nevus",
-    # Características
-    "asimetría", "borde", "color", "diámetro", "evolución",
-    "irregular", "oscuro", "claro", "marrón", "negro", "rojo", "azul",
-    # Partes del cuerpo
-    "brazo", "pierna", "espalda", "pecho", "cara", "cuello",
-    "hombro", "abdomen", "muslo", "mano", "pie", "cabeza", "torso",
-    # Acciones
-    "crecer", "cambiar", "sangrar", "doler", "picar", "molestar", "pica", "duele", "duele un poco", "molesta",
-    "duele", "sangra", "crecía", "puntiagudo", "áspero", "pica mucho",
-    # Temporalidad
-    "semana", "mes", "año", "día", "recientemente", "siempre",
-    "nuevo", "antiguo", "reciente",
+    # Symptoms
+    "pain", "itching", "itchy", "sting", "stinging", "burn", "burning", 
+    "discomfort", "inflammation", "swelling", "redness", "bleeding", 
+    "oozing", "scab", "scratch", "itch", "hurts", "hurt",
+    # Lesion types
+    "mole", "nevus", "melanoma", "carcinoma", "keratosis", "lesion",
+    "spot", "wart", "freckle", "dermatofibroma", "birthmark",
+    # Features
+    "asymmetry", "border", "color", "diameter", "evolution",
+    "irregular", "dark", "clear", "brown", "black", "red", "blue",
+    # Body parts
+    "arm", "leg", "back", "chest", "face", "neck",
+    "shoulder", "abdomen", "thigh", "hand", "foot", "head", "torso",
+    # Actions
+    "grow", "change", "bleed", "hurt", "itch", "growing", "changed", "bled", "hurts",
+    "sharp", "rough", "smooth", "growing",
+    # Chronology
+    "week", "month", "year", "day", "recently", "always",
+    "new", "old", "recent", "ago", "years", "weeks", "months", "days",
 }
 
-# Stopwords en español
+# English stop words
 STOPWORDS = {
-    "el", "la", "los", "las", "un", "una", "unos", "unas",
-    "de", "del", "al", "en", "con", "por", "para", "que", "se",
-    "es", "y", "o", "a", "no", "si", "me", "mi", "yo", "te",
-    "lo", "le", "su", "nos", "muy", "más", "pero", "como",
-    "este", "esta", "estos", "estas", "ese", "esa", "esos", "esas",
-    "ha", "he", "hay", "han", "tiene", "tengo", "tiene",
-    "pues", "eh", "bueno", "vale", "mira", "ver", "vamos",
+    "the", "a", "an", "and", "or", "but", "if", "because", "as", "until", 
+    "while", "of", "at", "by", "for", "with", "about", "against", "between",
+    "into", "through", "during", "before", "after", "above", "below", "to",
+    "from", "up", "down", "in", "out", "on", "off", "over", "under", "again",
+    "further", "then", "once", "here", "there", "when", "where", "why", "how",
+    "all", "any", "both", "each", "few", "more", "most", "other", "some", "such",
+    "no", "nor", "not", "only", "own", "same", "so", "than", "too", "very",
+    "s", "t", "can", "will", "just", "don", "should", "now", "i", "me", "my", 
+    "myself", "we", "our", "ours", "ourselves", "you", "your", "yours", 
+    "yourself", "yourselves", "he", "him", "his", "himself", "she", "her", 
+    "hers", "herself", "it", "its", "itself", "they", "them", "their", 
+    "theirs", "themselves", "what", "which", "who", "whom", "this", "that", 
+    "these", "those", "am", "is", "are", "was", "were", "be", "been", "being", 
+    "have", "has", "had", "having", "do", "does", "did", "doing", "would", 
+    "could", "should", "ought", "i'm", "you're", "he's", "she's", "it's", 
+    "we're", "they're", "i've", "you've", "we've", "they've", "i'd", "you'd", 
+    "he'd", "she'd", "we'd", "they'd", "i'll", "you'll", "he'll", "she'll", 
+    "we'll", "they'll", "isn't", "aren't", "wasn't", "weren't", "hasn't", 
+    "haven't", "hadn't", "doesn't", "don't", "didn't", "won't", "wouldn't", 
+    "shan't", "shouldn't", "can't", "cannot", "couldn't", "mustn't", "let's", 
+    "that's", "who's", "what's", "here's", "there's", "when's", "where's", 
+    "why's", "how's", "d", "ll", "m", "re", "ve", "rd",
 }
 
 
 class MedicalTokenizer:
-    """Tokenizador para texto médico en español."""
+    """Tokenizer for English clinical text."""
 
     def __init__(self):
         self.vocab = MEDICAL_VOCAB
@@ -50,25 +66,24 @@ class MedicalTokenizer:
 
     def tokenize(self, text):
         """
-        Tokeniza texto en español médico.
+        Tokenizes English medical text.
 
         Args:
-            text: String de texto
-
+            text: Input string
         Returns:
-            dict con tokens, token_details, medical_terms, stats
+            dict with tokens, token_details, medical_terms, stats
         """
         if not text or not text.strip():
             return {"tokens": [], "token_details": [], "medical_terms": [],
                     "stats": {"total": 0, "unique": 0, "medical": 0}}
 
-        # 1. Normalización
+        # 1. Normalization
         normalized = self._normalize(text)
 
-        # 2. Tokenización por palabras
+        # 2. Word Tokenization
         raw_tokens = self._word_tokenize(normalized)
 
-        # 3. Análisis de cada token
+        # 3. Analyze each token
         token_details = []
         clean_tokens = []
         medical_terms = []
@@ -77,14 +92,14 @@ class MedicalTokenizer:
             detail = {
                 "token": token,
                 "position": i,
-                "is_stopword": token in self.stopwords,
-                "is_medical": token in self.vocab,
+                "is_stopword": token in self.stopwords or token.replace("'", "") in self.stopwords,
+                "is_medical": token in self.vocab or token.replace("'", "") in self.vocab,
                 "is_number": token.isdigit(),
                 "is_punctuation": bool(re.match(r'^[^\w\s]+$', token)),
                 "length": len(token),
             }
 
-            # Lematización básica
+            # Basic Lemmatization
             detail["lemma"] = self._basic_lemma(token)
 
             token_details.append(detail)
@@ -95,7 +110,7 @@ class MedicalTokenizer:
             if detail["is_medical"]:
                 medical_terms.append(token)
 
-        # 4. Estadísticas
+        # 4. Statistics
         token_counts = Counter(clean_tokens)
 
         return {
@@ -116,43 +131,35 @@ class MedicalTokenizer:
         }
 
     def _normalize(self, text):
-        """Normaliza el texto: minúsculas, limpieza básica."""
+        """Normalizes text: lowercase, basic cleaning."""
         text = text.lower().strip()
-        # Eliminar caracteres especiales excepto acentos
-        text = re.sub(r'[^\w\sáéíóúñü.,;:!?¿¡-]', ' ', text)
-        # Normalizar espacios
+        # Clean special chars but keep essential punctuation for tokenization
+        text = re.sub(r'[^\w\s\'.,;:!?¿¡-]', ' ', text)
+        # Normalize spaces
         text = re.sub(r'\s+', ' ', text)
         return text
 
     def _word_tokenize(self, text):
-        """Tokenización por palabras, manteniendo puntuación separada."""
-        # Separar puntuación
+        """Word tokenization, keeping punctuation separate."""
+        # Separate punctuation
         text = re.sub(r'([.,;:!?¿¡])', r' \1 ', text)
         tokens = text.split()
         return [t.strip() for t in tokens if t.strip()]
 
     def _basic_lemma(self, word):
-        """Lematización básica por reglas (sin librería externa)."""
+        """Basic rule-based lemmatization for English."""
         if len(word) <= 3:
             return word
 
-        # Plurales
-        if word.endswith("es") and len(word) > 4:
-            if word[:-2] in self.vocab:
-                return word[:-2]
-        if word.endswith("s") and len(word) > 3:
+        # Plural
+        if word.endswith("s") and not word.endswith("ss") and len(word) > 3:
             if word[:-1] in self.vocab:
                 return word[:-1]
-
-        # Verbos comunes (gerundios, participios)
-        if word.endswith("ando"):
-            return word[:-4] + "ar"
-        if word.endswith("iendo"):
-            return word[:-5] + "er"
-        if word.endswith("ado"):
-            return word[:-3] + "ar"
-        if word.endswith("ido"):
-            return word[:-3] + "ir"
+        
+        # Gerund
+        if word.endswith("ing") and len(word) > 5:
+            if word[:-3] in self.vocab:
+                return word[:-3]
 
         return word
 

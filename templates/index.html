@@ -1,12 +1,12 @@
 <!DOCTYPE html>
-<html lang="es">
+<html lang="en">
 
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>🔬 DermaScan — Escáner Inteligente de Lunares</title>
+    <title>🔬 DermaScan — Intelligent Skin Analyzer</title>
     <meta name="description"
-        content="App inteligente para el análisis de lunares con cámara, voz e inteligencia artificial">
+        content="Intelligent app for mole analysis using camera, voice and artificial intelligence">
     <link rel="stylesheet" href="/static/css/style.css">
     <script src="https://cdn.socket.io/4.7.5/socket.io.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
@@ -19,7 +19,7 @@
             <div class="header-title">
                 <span class="header-icon">🔬</span>
                 <h1>DermaScan</h1>
-                <span class="header-badge">IA</span>
+                <span class="header-badge">AI</span>
             </div>
         </div>
     </header>
@@ -27,29 +27,29 @@
     <!-- NAVIGATION -->
     <nav class="tab-nav">
         <button class="tab-btn active" data-tab="scanner" onclick="switchTab('scanner')">
-            <span class="tab-icon">📷</span> Escáner
+            <span class="tab-icon">📷</span> Scanner
         </button>
         <button class="tab-btn" data-tab="nlp" onclick="switchTab('nlp')">
-            <span class="tab-icon">🎤</span> NLP + Voz
+            <span class="tab-icon">🎤</span> NLP + Voice
         </button>
         <button class="tab-btn" data-tab="rl" onclick="switchTab('rl')">
             <span class="tab-icon">🤖</span> Deep RL
         </button>
         <button class="tab-btn" data-tab="history" onclick="switchTab('history')">
-            <span class="tab-icon">📋</span> Historial
+            <span class="tab-icon">📋</span> History
         </button>
         <button class="tab-btn" data-tab="evaluation" onclick="switchTab('evaluation');">
-            <span class="tab-icon">🧪</span> Evaluación
+            <span class="tab-icon">🧪</span> Evaluation
         </button>
     </nav>
 
-    <!-- ==================== TAB: ESCÁNER ==================== -->
+    <!-- ==================== TAB: SCANNER ==================== -->
     <section class="tab-content active" id="tab-scanner">
         <div class="scanner-layout">
             <!-- Camera / Upload -->
             <div class="card camera-card">
                 <div class="card-header">
-                    <h2>📷 Escanear Lunar</h2>
+                    <h2>📷 Scan Mole</h2>
                 </div>
 
                 <!-- Camera preview -->
@@ -57,7 +57,7 @@
                     <video id="cameraVideo" autoplay playsinline></video>
                     <canvas id="edgeCanvas" class="edge-overlay"></canvas>
                     <canvas id="cameraCanvas" style="display:none"></canvas>
-                    <img id="capturedImage" style="display:none" alt="Lunar escaneado">
+                    <img id="capturedImage" style="display:none" alt="Scanned mole">
                     <div class="camera-overlay" id="cameraOverlay">
                         <!-- Crosshair lines -->
                         <div class="camera-crosshair camera-crosshair-h"></div>
@@ -67,26 +67,26 @@
                         <!-- Center dot -->
                         <div class="camera-center-dot"></div>
                         <!-- Label -->
-                        <p class="camera-hint">Centra el lunar en el punto</p>
+                        <p class="camera-hint">Center the mole on the dot</p>
                     </div>
                 </div>
 
                 <!-- Zoom Controls -->
                 <div class="zoom-controls" style="margin: 10px 0; display: flex; align-items: center; gap: 10px; background: #f8fafc; padding: 12px; border-radius: 12px; border: 1px solid var(--border-light);">
-                    <span style="font-size: 0.82rem; font-weight: 600; color: var(--text-secondary)">🔍 Zoom Óptico/Digital:</span>
+                    <span style="font-size: 0.82rem; font-weight: 600; color: var(--text-secondary)">🔍 Optical/Digital Zoom:</span>
                     <input type="range" id="zoomSlider" min="1" max="3" step="0.1" value="1" style="flex: 1; cursor: pointer; accent-color: var(--teal);" oninput="applyZoom(this.value)">
                     <span style="font-size: 0.85rem; font-weight: 700; color: var(--teal); width: 30px" id="zoomVal">1.0x</span>
                 </div>
 
                 <div class="scanner-actions">
                     <button class="btn btn-primary btn-large" id="btnCapture" onclick="capturePhoto()">
-                        📸 Tomar Foto
+                        📸 Take Photo
                     </button>
                     <button class="btn btn-secondary btn-large" id="btnReset" onclick="resetScan()" style="display:none">
-                        🔄 Nueva Foto
+                        🔄 New Photo
                     </button>
                     <label class="btn btn-secondary btn-large" for="fileInput">
-                        📁 Subir Imagen
+                        📁 Upload Image
                     </label>
                     <input type="file" id="fileInput" accept="image/*" capture="environment" style="display:none"
                         onchange="handleFileUpload(event)">
@@ -98,34 +98,34 @@
                 <div id="scanResults">
                     <div class="empty-state">
                         <span class="empty-icon">🔬</span>
-                        <p>Toma una foto de un lunar para analizarlo</p>
+                        <p>Take a photo of a mole to analyze it</p>
                     </div>
                 </div>
             </div>
         </div>
     </section>
 
-    <!-- ==================== TAB: NLP + VOZ ==================== -->
+    <!-- ==================== TAB: NLP + VOICE ==================== -->
     <section class="tab-content" id="tab-nlp">
         <div class="nlp-layout">
             <!-- Voice / Text Interaction -->
             <div class="card voice-card">
                 <div class="card-header">
-                    <h2>🎤 Interacción por Voz</h2>
+                    <h2>🎤 Voice Interaction</h2>
                 </div>
 
                 <!-- Question from DRL -->
                 <div class="question-box" id="questionBox">
-                    <div class="question-label">El sistema pregunta:</div>
+                    <div class="question-label">The system asks:</div>
                     <div class="question-text" id="questionText">
-                        Escanea un lunar primero para iniciar la consulta
+                        Scan a mole first to start the consultation
                     </div>
                     <button class="btn btn-accent" id="btnSpeak" onclick="speakQuestion()" disabled>
-                        🔊 Leer en voz alta
+                        🔊 Read aloud
                     </button>
-                    <!-- Respuestas Rápidas -->
+                    <!-- Quick Answers -->
                     <div id="quickAnswers" style="display:none; gap:10px; margin-top:15px; justify-content:center">
-                        <button class="btn btn-success" style="padding:10px 25px; font-weight:700" onclick="sendQuickAnswer('Sí')">SÍ</button>
+                        <button class="btn btn-success" style="padding:10px 25px; font-weight:700" onclick="sendQuickAnswer('Yes')">YES</button>
                         <button class="btn btn-danger" style="padding:10px 25px; font-weight:700" onclick="sendQuickAnswer('No')">NO</button>
                     </div>
                 </div>
@@ -135,23 +135,23 @@
                     <button class="btn-mic" id="btnMic" onclick="toggleListening()" disabled>
                         <span class="mic-icon" id="micIcon">🎙️</span>
                     </button>
-                    <p class="mic-label" id="micLabel">Pulsa para hablar</p>
+                    <p class="mic-label" id="micLabel">Press to speak</p>
                 </div>
 
                 <!-- Transcription -->
                 <div class="transcription-area" id="transcriptionArea" style="display:none">
-                    <div class="transcription-label">Tu respuesta:</div>
+                    <div class="transcription-label">Your answer:</div>
                     <div class="transcription-text" id="transcriptionText"></div>
                     <button class="btn btn-primary" onclick="processResponse()">
-                        ✅ Enviar respuesta
+                        ✅ Send answer
                     </button>
                 </div>
 
                 <!-- Manual text input -->
                 <div class="manual-input">
-                    <textarea id="manualInput" placeholder="O escribe tu respuesta aquí..." rows="2"></textarea>
+                    <textarea id="manualInput" placeholder="Or type your answer here..." rows="2"></textarea>
                     <button class="btn btn-secondary" onclick="submitManualResponse()">
-                        Enviar texto
+                        Send text
                     </button>
                 </div>
             </div>
@@ -159,18 +159,18 @@
             <!-- NLP Results -->
             <div class="card nlp-results-card">
                 <div class="card-header">
-                    <h2>📊 Análisis NLP</h2>
+                    <h2>📊 NLP Analysis</h2>
                 </div>
                 <div id="nlpResults">
                     <div class="empty-state">
                         <span class="empty-icon">🎤</span>
-                        <p>Responde a las preguntas por voz o texto</p>
+                        <p>Answer the questions by voice or text</p>
                     </div>
                 </div>
 
                 <!-- Symptom Summary -->
                 <div id="symptomSummary" style="display:none">
-                    <h3>📋 Resumen de Síntomas</h3>
+                    <h3>📋 Symptom Summary</h3>
                     <div id="symptomList" class="symptom-list"></div>
                 </div>
 
@@ -183,31 +183,31 @@
     <!-- ==================== TAB: DEEP RL ==================== -->
     <section class="tab-content" id="tab-rl">
         <div class="rl-layout">
-            <!-- Estado y métricas del agente -->
+            <!-- Agent status and metrics -->
             <div class="card rl-control-card">
                 <div class="card-header">
-                    <h2>🤖 Agente DQN — Estado</h2>
-                    <button class="btn btn-secondary" onclick="loadAgentStatus(); loadEvaluation()">🔄 Actualizar</button>
+                    <h2>🤖 DQN Agent — Status</h2>
+                    <button class="btn btn-secondary" onclick="loadAgentStatus(); loadEvaluation()">🔄 Refresh</button>
                 </div>
 
-                <!-- Métricas principales -->
+                <!-- Main metrics -->
                 <div id="agentStatusContent" style="margin-bottom:16px">
-                    <div class="empty-state"><span class="spinner"></span><p>Cargando...</p></div>
+                    <div class="empty-state"><span class="spinner"></span><p>Loading...</p></div>
                 </div>
 
-                <!-- Evaluación automática -->
+                <!-- Automatic evaluation -->
                 <div id="evalResults" class="eval-results">
-                    <h3>📊 Rendimiento del Agente</h3>
+                    <h3>📊 Agent Performance</h3>
                     <div id="evalContent">
-                        <div class="empty-state"><span class="spinner"></span><p>Evaluando...</p></div>
+                        <div class="empty-state"><span class="spinner"></span><p>Evaluating...</p></div>
                     </div>
                 </div>
             </div>
 
-            <!-- Gráficas -->
+            <!-- Charts -->
             <div class="card rl-chart-card">
                 <div class="card-header">
-                    <h2>📈 Historial de Entrenamiento</h2>
+                    <h2>📈 Training History</h2>
                 </div>
                 <div class="charts-container">
                     <div class="chart-wrapper"><canvas id="rewardChart"></canvas></div>
@@ -218,47 +218,47 @@
     </section>
 
 
-    <!-- ==================== TAB: HISTORIAL ==================== -->
+    <!-- ==================== TAB: HISTORY ==================== -->
     <section class="tab-content" id="tab-history">
         <div class="card">
             <div class="card-header">
-                <h2>📋 Historial de Consultas</h2>
-                <button class="btn btn-secondary" onclick="loadHistory()">🔄 Actualizar</button>
+                <h2>📋 Consultation History</h2>
+                <button class="btn btn-secondary" onclick="loadHistory()">🔄 Refresh</button>
             </div>
             <div id="historyList">
                 <div class="empty-state">
                     <span class="empty-icon">📋</span>
-                    <p>Aún no hay consultas registradas</p>
+                    <p>No consultations recorded yet</p>
                 </div>
             </div>
         </div>
     </section>
     
-    <!-- ==================== TAB: EVALUACIÓN ==================== -->
+    <!-- ==================== TAB: EVALUATION ==================== -->
     <section class="tab-content" id="tab-evaluation">
         <div class="evaluation-layout">
             <div class="card eval-header-card">
                 <div class="card-header">
-                    <h2>🧪 Validación del Extractor de Síntomas</h2>
-                    <span class="badge" id="nlpStatusBadge" style="background:#e2e8f0;color:#64748b">Cargando...</span>
+                    <h2>🧪 Symptom Extractor Validation</h2>
+                    <span class="badge" id="nlpStatusBadge" style="background:#e2e8f0;color:#64748b">Loading...</span>
                 </div>
                 <div style="display:flex; gap:10px; margin-bottom:12px; flex-wrap:wrap;">
                     <button class="btn btn-primary" id="btnTrainModel" onclick="trainNlpModel()">
-                        ⚙️ Entrenar / Re-Entrenar Modelo
+                        ⚙️ Train / Re-Train Model
                     </button>
-                    <button class="btn btn-secondary" onclick="loadEvaluationSection()">🔄 Refrescar Estado</button>
+                    <button class="btn btn-secondary" onclick="loadEvaluationSection()">🔄 Refresh Status</button>
                 </div>
                 <div class="stats-row" style="display: flex; gap: 20px; margin-top: 15px;">
                     <div class="mini-stat">
-                        <span class="mini-label">Casos de Prueba</span>
+                        <span class="mini-label">Test Cases</span>
                         <span class="mini-val" id="eval-total-cases">--</span>
                     </div>
                     <div class="mini-stat">
-                        <span class="mini-label">Decisiones Totales</span>
+                        <span class="mini-label">Total Decisions</span>
                         <span class="mini-val" id="eval-total-decisions">--</span>
                     </div>
                     <div class="mini-stat">
-                        <span class="mini-label">Exactitud Global</span>
+                        <span class="mini-label">Global Accuracy</span>
                         <span class="mini-val" id="eval-global-acc" style="color:var(--teal)">--%</span>
                     </div>
                 </div>
@@ -266,13 +266,13 @@
 
             <div class="eval-grid" style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin: 20px 0;">
                 <div class="card">
-                    <div class="card-header"><h3>📊 Precisión por Síntoma</h3></div>
+                    <div class="card-header"><h3>📊 Accuracy per Symptom</h3></div>
                     <div class="chart-container" style="height: 300px;">
                         <canvas id="evalBarChart"></canvas>
                     </div>
                 </div>
                 <div class="card">
-                    <div class="card-header"><h3>🕸️ Cobertura F1</h3></div>
+                    <div class="card-header"><h3>🕸️ F1 Coverage</h3></div>
                     <div class="chart-container" style="height: 300px;">
                         <canvas id="evalRadarChart"></canvas>
                     </div>
@@ -281,7 +281,7 @@
 
             <div class="card">
                 <div class="card-header">
-                    <h2>📋 Explorador de Dataset de Evaluación (NLP)</h2>
+                    <h2>📋 Evaluation Dataset Explorer (NLP)</h2>
                     <button class="btn btn-primary" id="btnRunEval" onclick="triggerEvaluation()">🚀 Evaluate</button>
                 </div>
                 <div class="table-container" style="max-height: 400px; overflow-y: auto; margin-top: 15px;">
@@ -289,13 +289,13 @@
                         <thead>
                             <tr style="text-align: left; border-bottom: 2px solid var(--border-light)">
                                 <th style="padding: 12px">ID</th>
-                                <th style="padding: 12px">Síntoma</th>
-                                <th style="padding: 12px">Frase del Paciente</th>
-                                <th style="padding: 12px">Resultado</th>
+                                <th style="padding: 12px">Symptom</th>
+                                <th style="padding: 12px">Patient Phrase</th>
+                                <th style="padding: 12px">Result</th>
                             </tr>
                         </thead>
                         <tbody id="evalTableBody">
-                            <!-- Inyectado por JS -->
+                            <!-- Injected by JS -->
                         </tbody>
                     </table>
                 </div>
@@ -303,7 +303,7 @@
         </div>
     </section>
 
-    <script src="{{ url_for('static', filename='js/app.js') }}?v=11.0"></script>
+    <script src="{{ url_for('static', filename='js/app.js') }}?v=12.0"></script>
 </body>
 
 </html>
