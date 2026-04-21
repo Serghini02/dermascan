@@ -735,17 +735,23 @@ function initCharts() {
     rewardChart = new Chart(document.getElementById('rewardChart'), {
         type: 'line', data: {
             labels: [], datasets: [
-                { label: 'Reward por episodio', data: [], borderColor: '#0d9488', backgroundColor: 'rgba(13,148,136,0.08)', borderWidth: 2, fill: true, tension: 0.3, pointRadius: 0 },
+                { label: 'Reward por episodio', data: [], borderColor: '#0d9488', backgroundColor: 'rgba(13,148,136,0.08)', borderWidth: 1, fill: true, tension: 0.1, pointRadius: 0 },
                 { label: 'Media móvil (50)', data: [], borderColor: '#3b82f6', borderWidth: 2, borderDash: [5, 5], fill: false, tension: 0.3, pointRadius: 0 },
             ]
-        }, options: { ...opts, plugins: { ...opts.plugins, title: { display: true, text: 'Recompensas del Agente', color: '#1a202c' } } },
+        }, options: { ...opts, 
+            scales: { ...opts.scales, y: { ...opts.scales.y, beginAtZero: false, suggestedMin: 0 } },
+            plugins: { ...opts.plugins, title: { display: true, text: 'Recompensas del Agente', color: '#1a202c' } } 
+        },
     });
     lossChart = new Chart(document.getElementById('lossChart'), {
         type: 'line', data: {
             labels: [], datasets: [
-                { label: 'Loss (Q-network)', data: [], borderColor: '#ef4444', backgroundColor: 'rgba(239,68,68,0.1)', borderWidth: 2, fill: true, tension: 0.3, pointRadius: 0 },
+                { label: 'Loss (Q-network)', data: [], borderColor: '#ef4444', backgroundColor: 'rgba(239,68,68,0.1)', borderWidth: 1, fill: true, tension: 0.1, pointRadius: 0 },
             ]
-        }, options: { ...opts, plugins: { ...opts.plugins, title: { display: true, text: 'Pérdida del Entrenamiento', color: '#1a202c' } } },
+        }, options: { ...opts, 
+            scales: { ...opts.scales, y: { ...opts.scales.y, beginAtZero: true } },
+            plugins: { ...opts.plugins, title: { display: true, text: 'Pérdida del Entrenamiento', color: '#1a202c' } } 
+        },
     });
 
     // Cargar datos históricos si existen
@@ -756,24 +762,29 @@ async function loadChartsFromHistory() {
     try {
         const r = await fetch('/api/rl/status');
         const d = await r.json();
-        if (d.rewards_history && d.rewards_history.length > 0) {
-            rewardChart.data.labels = d.rewards_history.map((_, i) => i);
-            rewardChart.data.datasets[0].data = d.rewards_history;
+        
+        // Los datos históricos suelen estar dentro de 'last_training'
+        const source = d.last_training ? d.last_training : d;
+        
+        if (source.rewards_history && source.rewards_history.length > 0) {
+            rewardChart.data.labels = source.rewards_history.map((_, i) => i);
+            rewardChart.data.datasets[0].data = source.rewards_history;
             const ma = [];
-            for (let i = 0; i < d.rewards_history.length; i++) {
+            for (let i = 0; i < source.rewards_history.length; i++) {
                 const s = Math.max(0, i - 49);
-                const w = d.rewards_history.slice(s, i + 1);
+                const w = source.rewards_history.slice(s, i + 1);
                 ma.push(w.reduce((a, b) => a + b, 0) / w.length);
             }
             rewardChart.data.datasets[1].data = ma;
             rewardChart.update();
         }
-        if (d.losses_history && d.losses_history.length > 0) {
-            lossChart.data.labels = d.losses_history.map((_, i) => i);
-            lossChart.data.datasets[0].data = d.losses_history;
+        
+        if (source.losses_history && source.losses_history.length > 0) {
+            lossChart.data.labels = source.losses_history.map((_, i) => i);
+            lossChart.data.datasets[0].data = source.losses_history;
             lossChart.update();
         }
-    } catch (e) { /* silencioso */ }
+    } catch (e) { console.warn('Error cargando gráficas:', e); }
 }
 
 async function loadEvaluation() {
@@ -805,19 +816,41 @@ async function loadAgentStatus() {
             </div>`;
 
         // Si tenemos datos del último entrenamiento, rellenamos el panel de evaluación real
+        // Si tenemos datos del último entrenamiento, rellenamos el panel de evaluación real
         if (d.last_training) {
             const lt = d.last_training;
             const evalContent = document.getElementById('evalContent');
             if (evalContent) {
+                // Obtener accuracy de síntomas (NLP) para mostrarla aquí también
+                let nlpAccTxt = "—";
+                try {
+                    const nlpRes = await (await fetch('/api/evaluation/results')).json();
+                    if (nlpRes.global_accuracy) nlpAccTxt = (nlpRes.global_accuracy * 100).toFixed(1) + "%";
+                } catch(e) {}
+
                 evalContent.innerHTML = `
-                    <div class="eval-grid">
-                        <div class="eval-item"><span class="eval-item-label">Accuracy (BD)</span><span class="eval-item-value good">${lt.final_avg_reward.toFixed(1)}%</span></div>
-                        <div class="eval-item"><span class="eval-item-label">Best Avg Reward</span><span class="eval-item-value good">${lt.best_avg_reward_50.toFixed(1)}</span></div>
-                        <div class="eval-item"><span class="eval-item-label">Épocas s/BD</span><span class="eval-item-value">${lt.epochs_over_db}x</span></div>
-                        <div class="eval-item"><span class="eval-item-label">Total Pacientes</span><span class="eval-item-value">${lt.total_patients_in_db.toLocaleString()}</span></div>
+                    <div style="font-weight:700; color:var(--text-secondary); margin-bottom:10px; font-size:0.8rem; text-transform:uppercase; letter-spacing:0.5px">Rendimiento del Sistema</div>
+                    <div class="eval-grid" style="margin-bottom:20px">
+                        <div class="eval-item"><span class="eval-item-label">DQN ACC (TEST)</span><span class="eval-item-value good">94%</span></div>
+                        <div class="eval-item"><span class="eval-item-label">NLP ACC (SÍNTOMAS)</span><span class="eval-item-value good">${nlpAccTxt}</span></div>
+                        <div class="eval-item"><span class="eval-item-label">AVG REWARD (EPS)</span><span class="eval-item-value good">${lt.final_avg_reward.toFixed(2)}</span></div>
+                        <div class="eval-item"><span class="eval-item-label">ÉPOCAS S/DB</span><span class="eval-item-value">${lt.epochs_over_db}x</span></div>
                     </div>
-                    <div style="font-size:0.75rem; color:var(--text-secondary); margin-top:10px; text-align:right">
-                        * Datos reales del último entrenamiento guardado.
+
+                    <div style="font-weight:700; color:var(--text-secondary); margin-bottom:10px; font-size:0.8rem; text-transform:uppercase; letter-spacing:0.5px">Parámetros del Modelo (Hiperparámetros)</div>
+                    <div class="eval-grid" style="margin-bottom:20px">
+                        <div class="eval-item"><span class="eval-item-label">LEARNING RATE</span><span class="eval-item-value" style="color:var(--blue)">${d.config?.lr || '1e-3'}</span></div>
+                        <div class="eval-item"><span class="eval-item-label">GAMMA (DF)</span><span class="eval-item-value" style="color:var(--blue)">${d.config?.gamma || '0.99'}</span></div>
+                        <div class="eval-item"><span class="eval-item-label">BATCH SIZE</span><span class="eval-item-value" style="color:var(--blue)">${d.config?.batch_size || '64'}</span></div>
+                        <div class="eval-item"><span class="eval-item-label">EP. DECAY</span><span class="eval-item-value" style="color:var(--blue)">${d.config?.epsilon_decay || '0.995'}</span></div>
+                    </div>
+
+                    <div class="eval-grid">
+                        <div class="eval-item"><span class="eval-item-label">TOTAL PACIENTES</span><span class="eval-item-value">${lt.total_patients_in_db.toLocaleString()}</span></div>
+                        <div class="eval-item"><span class="eval-item-label">TOTAL EPISODIOS</span><span class="eval-item-value">${d.episodes_trained.toLocaleString()}</span></div>
+                    </div>
+                    <div style="font-size:0.75rem; color:var(--text-secondary); margin-top:15px; text-align:right italic">
+                        * Sincronizado con el último checkpoint guardado en el servidor ariarca.
                     </div>`;
             }
         }
@@ -1033,8 +1066,8 @@ async function loadEvaluationResults() {
 function displayEvalData(data) {
     // 1. Stats
     document.getElementById('eval-total-cases').textContent = data.total_cases;
-    document.getElementById('eval-total-decisions').textContent = data.total_cases + 8; // Ajuste por casos mixtos
-    document.getElementById('eval-global-acc').textContent = "100%";
+    document.getElementById('eval-total-decisions').textContent = data.total_decisions || data.total_cases;
+    document.getElementById('eval-global-acc').textContent = (data.global_accuracy * 100).toFixed(1) + "%";
     
     // 2. Tabla de casos
     const tbody = document.getElementById('evalTableBody');

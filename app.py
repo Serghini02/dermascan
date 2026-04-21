@@ -368,6 +368,14 @@ def rl_status():
     if os.path.exists(results_path):
         with open(results_path) as f:
             status["last_training"] = json.load(f)
+    
+    # Añadir configuración técnica para el dashboard
+    status["config"] = {
+        "lr": dqn_agent.config.get("learning_rate"),
+        "gamma": dqn_agent.config.get("gamma"),
+        "batch_size": dqn_agent.config.get("batch_size"),
+        "epsilon_decay": dqn_agent.config.get("epsilon_decay")
+    }
     return jsonify(status)
 
 
