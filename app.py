@@ -16,8 +16,11 @@ from io import BytesIO
 
 from flask import Flask, render_template, request, jsonify, send_file
 from flask_socketio import SocketIO
-import pyttsx3
 import tempfile
+import subprocess
+import platform
+import asyncio
+import edge_tts
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
@@ -314,50 +317,46 @@ def nlp_train():
         return jsonify({"status": "error", "message": str(e)}), 500
 
 
+# Caché para evitar regenerar el mismo audio
+TTS_CACHE = {}
+
 @app.route('/api/tts')
 def text_to_speech():
-    """Genera audio usando pyttsx3 (local)."""
-    text = request.args.get("text", "")
-    lang = request.args.get("lang", "en") # en/es
+    """Genera audio usando Edge-TTS con caché y procesamiento en memoria."""
+    text = request.args.get("text", "").strip()
+    lang = request.args.get("lang", "en")
     if not text:
         return "No text provided", 400
     
+    # Crear una clave para la caché
+    cache_key = f"{lang}:{text}"
+    if cache_key in TTS_CACHE:
+        return send_file(BytesIO(TTS_CACHE[cache_key]), mimetype='audio/mpeg')
+    
+    # Seleccionar voz neuronal
+    voice = "en-US-GuyNeural" if lang.startswith("en") else "es-ES-AlvaroNeural"
+    
     try:
-        # Inicializar engine local
-        engine = pyttsx3.init()
+        communicate = edge_tts.Communicate(text, voice)
+        audio_data = []
         
-        # Configurar voz basada en el idioma
-        voices = engine.getProperty('voices')
-        # Intentar encontrar una voz que coincida con el idioma
-        # Por defecto suele haber una en inglés y otra en el idioma del sistema
-        selected_voice = None
-        for voice in voices:
-            if lang.lower() in voice.id.lower() or lang.lower() in voice.languages:
-                selected_voice = voice.id
-                break
+        async def _get_data():
+            async for chunk in communicate.stream():
+                if chunk["type"] == "audio":
+                    audio_data.append(chunk["data"])
         
-        if selected_voice:
-            engine.setProperty('voice', selected_voice)
+        asyncio.run(_get_data())
         
-        engine.setProperty('rate', 150) # Velocidad un poco más lenta para claridad
+        # Unir los trozos de audio
+        final_audio = b"".join(audio_data)
         
-        # Guardar en archivo temporal
-        with tempfile.NamedTemporaryFile(delete=False, suffix=".wav") as tmp:
-            tmp_path = tmp.name
-            
-        engine.save_to_file(text, tmp_path)
-        engine.runAndWait()
+        # Guardar en caché (limitar tamaño si es necesario, aquí simple)
+        if len(TTS_CACHE) > 100: # Evitar consumo excesivo de RAM
+            TTS_CACHE.clear()
+        TTS_CACHE[cache_key] = final_audio
         
-        # Leer el contenido para enviarlo y borrar el temporal
-        with open(tmp_path, "rb") as f:
-            data = f.read()
-        
-        os.remove(tmp_path)
-        
-        return send_file(BytesIO(data), mimetype='audio/wav')
+        return send_file(BytesIO(final_audio), mimetype='audio/mpeg')
     except Exception as e:
-        import traceback
-        traceback.print_exc()
         return str(e), 500
 
 

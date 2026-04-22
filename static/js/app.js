@@ -53,6 +53,7 @@ let edgeAnimId = null;
 let edgeBuffer = []; // Buffer para suavizado temporal
 const BUFFER_SIZE = 3;
 let currentQuestionId = ''; // Rastreador de la pregunta activa
+let torchStatus = false;    // Estado de la linterna
 
 // Flags de sincronización para ocultar resultados hasta completar consulta
 let consultationFinished = false;
@@ -66,6 +67,13 @@ async function initCamera() {
         });
         video.srcObject = cameraStream;
         document.getElementById('cameraOverlay').style.display = 'flex';
+
+        // Soporte para linterna
+        const track = cameraStream.getVideoTracks()[0];
+        const caps = (track.getCapabilities && track.getCapabilities()) || {};
+        
+        // Asegurar que el botón sea visible si hay cámara activa
+        document.getElementById('btnTorch').style.display = 'flex';
 
         // Iniciar detección de bordes cuando el video esté listo
         video.addEventListener('playing', () => {
@@ -309,6 +317,23 @@ async function applyZoom(val) {
     // Fallback Zoom Digital por software (CSS)
     const video = document.getElementById('cameraVideo');
     if (video) video.style.transform = `scale(${val})`;
+}
+
+async function toggleTorch() {
+    if (!cameraStream) return;
+    try {
+        const track = cameraStream.getVideoTracks()[0];
+        torchStatus = !torchStatus;
+        await track.applyConstraints({
+            advanced: [{ torch: torchStatus }]
+        });
+        
+        // Actualizar UI
+        document.getElementById('torchText').textContent = `Flashlight: ${torchStatus ? 'ON' : 'OFF'}`;
+        document.getElementById('btnTorch').classList.toggle('btn-accent', torchStatus);
+    } catch (e) {
+        console.error('No se pudo controlar la linterna:', e);
+    }
 }
 
 function capturePhoto() {
@@ -715,9 +740,19 @@ function displayNlpResults(data) {
 
     // Final diagnosis
     if (data.is_final && data.diagnosis) {
-        consultationFinished = true; // MARCAR COMO FINALIZADO
+        consultationFinished = true; 
         
-        // Actualizar la UI del escáner con los datos que teníamos guardados
+        // Final message in English as requested
+        const finalMsg = "The system has provided a diagnosis.";
+        document.getElementById('questionText').textContent = finalMsg;
+        if (quickAnswers) quickAnswers.style.display = 'none';
+        document.getElementById('btnSpeak').disabled = true;
+        document.getElementById('btnMic').disabled = true;
+
+        // Speak the final notification
+        playTts(finalMsg, 'en');
+
+        // Update scan tab UI
         if (lastScanData) {
             displayScanResults(lastScanData);
         }
@@ -731,14 +766,16 @@ function displayNlpResults(data) {
             <div class="big-diagnosis">${d.diagnosis}</div>
             <span class="risk-badge ${riskClass}">${d.risk_label} risk</span>
             <div style="margin-top:8px;font-size:0.85rem">
-                CNN Confidence: ${(d.confidence * 100).toFixed(1)}% | ABCDE: ${d.abcde_total}/10
+                AI Confidence: ${(d.confidence * 100).toFixed(1)}% | ABCDE: ${d.abcde_total}/10
             </div>
             <div class="recommendation">${d.recommendation}</div>
             ${d.symptom_summary ? '<div style="margin-top:10px">' + d.symptom_summary.map(s => `<div class="symptom-item">${s}</div>`).join('') + '</div>' : ''}`;
 
-        // Speak recommendation using pyttsx3 (local voice)
-        const cleanRec = d.recommendation.replace(/[⚠️⚡📋✅]/g, '');
-        playTts(cleanRec, 'en');
+        // Also play the recommendation audio after a short delay
+        setTimeout(() => {
+            const cleanRec = d.recommendation.replace(/[⚠️⚡📋✅]/g, '');
+            playTts(cleanRec, 'en');
+        }, 3000);
     }
 
     container.innerHTML = html || '<div class="empty-state"><p>No changes detected</p></div>';

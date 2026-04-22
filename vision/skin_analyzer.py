@@ -67,13 +67,13 @@ def analyze_mole(image, n_passes=300, callback=None):
     c_detail = f"Media {n_passes} pasadas | Último: {c_scores[-1]:.3f}"
     e_detail = f"Media {n_passes} pasadas | Último: {e_scores[-1]:.3f}"
 
-    # Puntuación total (0-10)
+    # Puntuación total (0-10) - v12.6 Calibración Conservadora
     total = (a_score + b_score + c_score + d_score + e_score) / 5 * 10
     total = round(min(total, 10.0), 1)
 
-    if total >= 7:
+    if total >= 8.5: # Subido de 7 a 8.5
         risk = "alto"
-    elif total >= 4:
+    elif total >= 6.0: # Subido de 4 a 6.0
         risk = "medio"
     else:
         risk = "bajo"
@@ -183,7 +183,7 @@ def _asymmetry(contour, mask):
     cx, cy = int(M["m10"] / M["m00"]), int(M["m01"] / M["m00"])
     
     # Suavizado extra de la máscara para evitar que el ruido de pixelado cuente como asimetría
-    mask_smooth = cv2.medianBlur(mask, 7)
+    mask_smooth = cv2.medianBlur(mask, 11) # Aumentado de 7 a 11 para mayor estabilidad
     
     # Recortar el lunar centrado en su centroide para evitar errores de alineación
     x, y, w, h = cv2.boundingRect(contour)
@@ -211,10 +211,10 @@ def _asymmetry(contour, mask):
     v_xor = cv2.bitwise_xor(centered_mask, v_flip)
     v_asym = np.sum(v_xor > 0) / max(np.sum(centered_mask > 0), 1)
     
-    # Ajuste de escala: un lunar normal suele tener ~20% mismatch por su naturaleza orgánica.
-    # Restamos este umbral base.
+    # Ajuste de escala (v12.6 - Muy permisivo)
+    # Ignoramos asimetrías de hasta el 40% (variación orgánica normal)
     asym_val = (h_asym + v_asym) / 2
-    score = max(0.0, (asym_val - 0.22) / 0.5) 
+    score = max(0.0, (asym_val - 0.40) / 0.50) 
     score = min(score, 1.0)
     
     detail = f"Asim H: {h_asym:.0%} | V: {v_asym:.0%}"
@@ -256,14 +256,14 @@ def _border_irregularity(contour):
     solidity = area / hull_area if hull_area > 0 else 1.0
 
     # Score combinado de irregularidad
-    # Umbralizado: ignoramos pequeñas variaciones orgánicas
-    irreg_rdv = max(0.0, (rdv - 0.08) / 0.15)
-    irreg_circ = max(0.0, (0.76 - circularity) / 0.76)
-    irreg_sol = max(0.0, (0.94 - solidity) / 0.94)
+    # Umbralizado (v12.6 - Ignorar micro-rugosidad)
+    irreg_rdv = max(0.0, (rdv - 0.18) / 0.25)
+    irreg_circ = max(0.0, (0.50 - circularity) / 0.50)
+    irreg_sol = max(0.0, (0.85 - solidity) / 0.85)
     
     # Pesos equilibrados: RDV sigue siendo importante pero no dominante
     score = (irreg_rdv * 0.4 + irreg_circ * 0.3 + irreg_sol * 0.3)
-    score = min(score * 1.4, 1.0) # Escalado más justo (v12.4)
+    score = min(score, 1.0) # Eliminado el multiplicador de agresividad
 
     detail = f"Serrado (RDV): {rdv:.2f} | Circularidad: {circularity:.2f}"
     return float(score), detail
@@ -345,9 +345,9 @@ def _diameter(contour, img_w, img_h):
     mole_area_px = cv2.contourArea(contour)
     pct_frame = (mole_area_px / img_area) * 100
 
-    # Puesto que las cámaras móviles pueden enfocar a gran distancia (FOV de 15cm-20cm reales cruzando la pantalla),
-    # hacemos la conversión mucho más suave: asumimos que un ancho de pantalla representa unos 150 milímetros.
-    px_per_mm = img_w / 150.0
+    # v12.6 Calibración de Diámetro: Asumimos que un ancho de pantalla (640px)
+    # representa unos 40 milímetros reales cuando se usa el visor.
+    px_per_mm = img_w / 40.0 
     diameter_mm = diameter_px / px_per_mm
 
     # Un lunar de 6mm dispararía sospecha.

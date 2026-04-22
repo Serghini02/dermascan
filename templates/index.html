@@ -71,11 +71,16 @@
                     </div>
                 </div>
 
-                <!-- Zoom Controls -->
-                <div class="zoom-controls" style="margin: 10px 0; display: flex; align-items: center; gap: 10px; background: #f8fafc; padding: 12px; border-radius: 12px; border: 1px solid var(--border-light);">
-                    <span style="font-size: 0.82rem; font-weight: 600; color: var(--text-secondary)">🔍 Optical/Digital Zoom:</span>
-                    <input type="range" id="zoomSlider" min="1" max="3" step="0.1" value="1" style="flex: 1; cursor: pointer; accent-color: var(--teal);" oninput="applyZoom(this.value)">
-                    <span style="font-size: 0.85rem; font-weight: 700; color: var(--teal); width: 30px" id="zoomVal">1.0x</span>
+                <!-- Zoom & Flashlight Controls -->
+                <div class="camera-tools" style="margin: 10px 0; display: flex; flex-direction: column; gap: 10px; background: #f8fafc; padding: 12px; border-radius: 12px; border: 1px solid var(--border-light);">
+                    <div style="display: flex; align-items: center; gap: 10px;">
+                        <span style="font-size: 0.82rem; font-weight: 600; color: var(--text-secondary)">🔍 Zoom:</span>
+                        <input type="range" id="zoomSlider" min="1" max="3" step="0.1" value="1" style="flex: 1; cursor: pointer; accent-color: var(--teal);" oninput="applyZoom(this.value)">
+                        <span style="font-size: 0.85rem; font-weight: 700; color: var(--teal); width: 30px" id="zoomVal">1.0x</span>
+                    </div>
+                    <button class="btn btn-secondary" id="btnTorch" onclick="toggleTorch()" style="width: 100%; display: flex; justify-content: center; align-items: center; gap: 8px; margin-top: 5px;">
+                        <span id="torchIcon">🔦</span> <span id="torchText">Flashlight: OFF</span>
+                    </button>
                 </div>
 
                 <div class="scanner-actions">
@@ -303,7 +308,7 @@
         </div>
     </section>
 
-    <script src="{{ url_for('static', filename='js/app.js') }}?v=14.0"></script>
+    <script src="{{ url_for('static', filename='js/app.js') }}?v=15.0"></script>
 </body>
 
 </html>

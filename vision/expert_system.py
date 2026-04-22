@@ -38,7 +38,7 @@ class MedicalExpertSystem:
             mel_info = cnn_result["probabilities"].get("mel", {})
             mel_prob = mel_info.get("probability", 0.0)
             
-        if mel_prob > self.MELANOMA_SENSITIVITY and abcde_scores.get("asymmetry", {}).get("score", 0) > 0.5:
+        if mel_prob > self.MELANOMA_SENSITIVITY and abcde_scores.get("asymmetry", {}).get("score", 0) > 0.7:
             refined_risk = "malignant"
             rules_triggered.append("R2: Suspected Melanoma due to combination of probability and asymmetry.")
 
