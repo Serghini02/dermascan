@@ -53,7 +53,6 @@ let edgeAnimId = null;
 let edgeBuffer = []; // Buffer para suavizado temporal
 const BUFFER_SIZE = 3;
 let currentQuestionId = ''; // Rastreador de la pregunta activa
-let torchStatus = false;    // Estado de la linterna
 
 // Flags de sincronización para ocultar resultados hasta completar consulta
 let consultationFinished = false;
@@ -67,13 +66,6 @@ async function initCamera() {
         });
         video.srcObject = cameraStream;
         document.getElementById('cameraOverlay').style.display = 'flex';
-
-        // Soporte para linterna
-        const track = cameraStream.getVideoTracks()[0];
-        const caps = (track.getCapabilities && track.getCapabilities()) || {};
-        
-        // Asegurar que el botón sea visible si hay cámara activa
-        document.getElementById('btnTorch').style.display = 'flex';
 
         // Iniciar detección de bordes cuando el video esté listo
         video.addEventListener('playing', () => {
@@ -317,23 +309,6 @@ async function applyZoom(val) {
     // Fallback Zoom Digital por software (CSS)
     const video = document.getElementById('cameraVideo');
     if (video) video.style.transform = `scale(${val})`;
-}
-
-async function toggleTorch() {
-    if (!cameraStream) return;
-    try {
-        const track = cameraStream.getVideoTracks()[0];
-        torchStatus = !torchStatus;
-        await track.applyConstraints({
-            advanced: [{ torch: torchStatus }]
-        });
-        
-        // Actualizar UI
-        document.getElementById('torchText').textContent = `Flashlight: ${torchStatus ? 'ON' : 'OFF'}`;
-        document.getElementById('btnTorch').classList.toggle('btn-accent', torchStatus);
-    } catch (e) {
-        console.error('No se pudo controlar la linterna:', e);
-    }
 }
 
 function capturePhoto() {
@@ -723,22 +698,8 @@ function displayNlpResults(data) {
             data.symptom_summary.map(s => `<div class="symptom-item">${s}</div>`).join('');
     }
 
-    // Next question
+    // Final diagnosis (PRIORIDAD ALTA)
     const quickAnswers = document.getElementById('quickAnswers');
-    if (data.next_question) {
-        document.getElementById('questionText').textContent = data.next_question;
-        if (quickAnswers) quickAnswers.style.display = 'flex';
-        if (data.next_action && typeof data.next_action.action !== 'undefined') {
-            const symptomIds = ['pain', 'itching', 'size', 'bleeding', 'color', 'duration'];
-            currentQuestionId = data.next_action.action <= 5 ? symptomIds[data.next_action.action] : '';
-        }
-        // Read the new question aloud
-        speakQuestion();
-    } else {
-        if (quickAnswers) quickAnswers.style.display = 'none';
-    }
-
-    // Final diagnosis
     if (data.is_final && data.diagnosis) {
         consultationFinished = true; 
         
@@ -776,6 +737,23 @@ function displayNlpResults(data) {
             const cleanRec = d.recommendation.replace(/[⚠️⚡📋✅]/g, '');
             playTts(cleanRec, 'en');
         }, 3000);
+        
+        container.innerHTML = html || '<div class="empty-state"><p>Analysis completed</p></div>';
+        return; 
+    }
+
+    // Next question (Solo si no es final)
+    if (data.next_question) {
+        document.getElementById('questionText').textContent = data.next_question;
+        if (quickAnswers) quickAnswers.style.display = 'flex';
+        if (data.next_action && typeof data.next_action.action !== 'undefined') {
+            const symptomIds = ['pain', 'itching', 'size', 'bleeding', 'color', 'duration'];
+            currentQuestionId = data.next_action.action <= 5 ? symptomIds[data.next_action.action] : '';
+        }
+        // Read the new question aloud
+        speakQuestion();
+    } else {
+        if (quickAnswers) quickAnswers.style.display = 'none';
     }
 
     container.innerHTML = html || '<div class="empty-state"><p>No changes detected</p></div>';
