@@ -427,6 +427,8 @@ async function sendScan(imageData) {
         if (data.next_question) {
             const qa = document.getElementById('quickAnswers');
             if (qa) qa.style.display = 'flex';
+            document.getElementById('btnMic').disabled = false;
+            document.getElementById('btnSpeak').disabled = false;
         }
         
         if (data.symptom_summary) {
@@ -746,6 +748,8 @@ function displayNlpResults(data) {
     if (data.next_question) {
         document.getElementById('questionText').textContent = data.next_question;
         if (quickAnswers) quickAnswers.style.display = 'flex';
+        document.getElementById('btnMic').disabled = false;
+        document.getElementById('btnSpeak').disabled = false;
         if (data.next_action && typeof data.next_action.action !== 'undefined') {
             const symptomIds = ['pain', 'itching', 'size', 'bleeding', 'color', 'duration'];
             currentQuestionId = data.next_action.action <= 5 ? symptomIds[data.next_action.action] : '';
