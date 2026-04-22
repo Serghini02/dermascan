@@ -110,7 +110,7 @@ FINAL_Dermascan/
 
 ---
 
-## 🤖 Included AI Modules
+##  Included AI Modules
 
 | Module            | Technology                | Description                                 |
 | ----------------- | ------------------------- | ------------------------------------------- |
@@ -123,7 +123,7 @@ FINAL_Dermascan/
 
 ---
 
-## ⚙️ Environment Variables
+##  Environment Variables
 
 | Variable                | Default Value         | Description                       |
 | ----------------------- | --------------------- | --------------------------------- |
@@ -133,7 +133,7 @@ FINAL_Dermascan/
 
 ---
 
-## 🔧 Common Troubleshooting
+##  Common Troubleshooting
 
 **The container doesn't start:**
 ```bash
