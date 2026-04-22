@@ -272,7 +272,7 @@ def process_voice():
             "symptoms": symptoms,
             "symptom_summary": get_symptom_summary(sess["symptoms"]),
             "next_action": drl_pred,
-            "next_question": _get_question_text(drl_pred["action"]),
+            "next_question": _get_question_text(drl_pred["action"]) if not is_final else "",
             "is_final": is_final,
             "diagnosis": diagnosis,
         })

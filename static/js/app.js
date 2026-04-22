@@ -1134,12 +1134,14 @@ function displayEvalData(data) {
 }
 
 function renderEvalCharts(metrics) {
+    // Las claves del servidor son: pain, itching, size, bleeding, color, duration
     const keys = ["pain", "itching", "size", "bleeding", "color", "duration"];
     const labels = ["Pain", "Itching", "Size", "Bleeding", "Color", "Duration"];
     
-    const precisionData = keys.map(k => metrics[k] ? metrics[k].Prec || 0 : 0);
-    const recallData = keys.map(k => metrics[k] ? metrics[k].Rec || 0 : 0);
-    const f1Data = keys.map(k => metrics[k] ? metrics[k].F1 || 0 : 0);
+    // Mapeo corregido: precision, recall, f1
+    const precisionData = keys.map(k => metrics[k] ? (metrics[k].precision || metrics[k].Prec || 0) : 0);
+    const recallData = keys.map(k => metrics[k] ? (metrics[k].recall || metrics[k].Rec || 0) : 0);
+    const f1Data = keys.map(k => metrics[k] ? (metrics[k].f1 || metrics[k].f1_score || metrics[k].F1 || 0) : 0);
 
     // BARRAS
     if (evalBarChart) evalBarChart.destroy();
@@ -1148,15 +1150,18 @@ function renderEvalCharts(metrics) {
         data: {
             labels: labels,
             datasets: [
-                { label: 'Precision', data: precisionData, backgroundColor: '#38bdf8' },
-                { label: 'Recall', data: recallData, backgroundColor: '#818cf8' }
+                { label: 'Precision', data: precisionData, backgroundColor: '#0ea5e9', borderRadius: 4 },
+                { label: 'Recall', data: recallData, backgroundColor: '#6366f1', borderRadius: 4 }
             ]
         },
         options: {
             responsive: true, maintainAspectRatio: false,
-            plugins: { legend: { labels: { color: '#94a3b8' } } },
+            plugins: { 
+                legend: { labels: { color: '#64748b', font: { weight: '600' } } },
+                tooltip: { backgroundColor: 'rgba(15, 23, 42, 0.9)' }
+            },
             scales: {
-                y: { beginAtZero: true, max: 1.2, ticks: { color: '#94a3b8' }, grid: { color: 'rgba(255,255,255,0.05)' } },
+                y: { beginAtZero: true, max: 1.0, ticks: { color: '#94a3b8' }, grid: { color: 'rgba(0,0,0,0.05)' } },
                 x: { ticks: { color: '#94a3b8' }, grid: { display: false } }
             }
         }
@@ -1169,26 +1174,31 @@ function renderEvalCharts(metrics) {
         data: {
             labels: labels,
             datasets: [{
-                label: 'F1 Score',
+                label: 'F1 Coverage',
                 data: f1Data,
-                backgroundColor: 'rgba(56, 189, 248, 0.2)',
-                borderColor: '#38bdf8',
-                borderWidth: 2,
-                pointBackgroundColor: '#38bdf8'
+                backgroundColor: 'rgba(14, 165, 233, 0.25)',
+                borderColor: '#0ea5e9',
+                borderWidth: 3,
+                pointBackgroundColor: '#0ea5e9',
+                pointBorderColor: '#fff',
+                pointHoverRadius: 6
             }]
         },
         options: {
             responsive: true, maintainAspectRatio: false,
             scales: {
                 r: {
-                    angleLines: { color: 'rgba(255,255,255,0.05)' },
-                    grid: { color: 'rgba(255,255,255,0.05)' },
-                    pointLabels: { color: '#94a3b8', font: { size: 10 } },
+                    angleLines: { color: 'rgba(0,0,0,0.1)' },
+                    grid: { color: 'rgba(0,0,0,0.1)' },
+                    pointLabels: { color: '#475569', font: { size: 11, weight: '600' } },
                     ticks: { display: false },
                     suggestedMin: 0, suggestedMax: 1
                 }
             },
-            plugins: { legend: { display: false } }
+            plugins: { 
+                legend: { display: false },
+                tooltip: { backgroundColor: 'rgba(15, 23, 42, 0.9)' }
+            }
         }
     });
 }
