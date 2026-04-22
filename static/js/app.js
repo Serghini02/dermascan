@@ -284,8 +284,6 @@ function resetScan() {
 
     // Limpiar estado NLP anterior
     document.getElementById('questionText').textContent = "Escanea un lunar primero para iniciar la consulta";
-    document.getElementById('btnSpeak').disabled = true;
-    document.getElementById('btnMic').disabled = true;
     const nlpRes = document.getElementById('nlpResults');
     if (nlpRes) nlpRes.innerHTML = '<div class="empty-state"><span class="empty-icon">🎤</span><p>Responde a las preguntas por voz o texto</p></div>';
     const symList = document.getElementById('symptomSummary');
@@ -709,8 +707,8 @@ function displayNlpResults(data) {
         const finalMsg = "The system has provided a diagnosis.";
         document.getElementById('questionText').textContent = finalMsg;
         if (quickAnswers) quickAnswers.style.display = 'none';
-        document.getElementById('btnSpeak').disabled = true;
         document.getElementById('btnMic').disabled = true;
+        document.getElementById('btnSpeak').disabled = true;
 
         // Speak the final notification
         playTts(finalMsg, 'en');
