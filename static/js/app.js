@@ -1,13 +1,71 @@
 /**
- * DermaScan — Frontend Logic
+ * EpidermAI — Frontend Logic
  * Camera, Web Speech API, WebSocket, Charts
  */
 
 // Generar o recuperar ID único de dispositivo para sesiones estables
-if (!localStorage.getItem('dermascan_device_id')) {
-    localStorage.setItem('dermascan_device_id', 'dev_' + Math.random().toString(36).substr(2, 9) + Date.now().toString(36));
+if (!localStorage.getItem('epidermai_device_id')) {
+    localStorage.setItem('epidermai_device_id', 'dev_' + Math.random().toString(36).substr(2, 9) + Date.now().toString(36));
 }
-const DEVICE_ID = localStorage.getItem('dermascan_device_id');
+const DEVICE_ID = localStorage.getItem('epidermai_device_id');
+
+// =============================================================================
+// API HELPER — CSRF + auto-refresh de sesión
+// =============================================================================
+function getCookie(name) {
+    const match = document.cookie.match(new RegExp('(^| )' + name + '=([^;]+)'));
+    return match ? decodeURIComponent(match[2]) : null;
+}
+
+async function apiFetch(url, options = {}) {
+    const opts = { credentials: 'same-origin', ...options };
+    const method = (opts.method || 'GET').toUpperCase();
+    if (method !== 'GET') {
+        opts.headers = { ...(opts.headers || {}), 'X-CSRF-Token': getCookie('csrf_token') || '' };
+    }
+
+    let res = await fetch(url, opts);
+    if (res.status === 401 && !url.startsWith('/api/auth/')) {
+        const refreshed = await fetch('/api/auth/refresh', { method: 'POST', credentials: 'same-origin' });
+        if (refreshed.ok) {
+            if (method !== 'GET') {
+                opts.headers = { ...(opts.headers || {}), 'X-CSRF-Token': getCookie('csrf_token') || '' };
+            }
+            res = await fetch(url, opts);
+        } else {
+            window.location.href = '/login';
+            return res;
+        }
+    }
+    return res;
+}
+
+async function logout() {
+    try {
+        await apiFetch('/api/auth/logout', { method: 'POST' });
+    } catch (e) { /* noop */ }
+    window.location.href = '/login';
+}
+
+async function loadProfile() {
+    try {
+        const res = await apiFetch('/api/auth/me');
+        if (!res.ok) return;
+        const data = await res.json();
+        const user = data.user;
+        const initial = (user.name || '?').charAt(0).toUpperCase();
+        const nameField = document.getElementById('profileName');
+        const emailSmall = document.getElementById('profileEmailSmall');
+        const nameFieldVal = document.getElementById('profileNameField');
+        const emailFieldVal = document.getElementById('profileEmailField');
+        const avatar = document.getElementById('profileAvatar');
+        if (nameField) nameField.textContent = user.name;
+        if (emailSmall) emailSmall.textContent = user.email;
+        if (nameFieldVal) nameFieldVal.textContent = user.name;
+        if (emailFieldVal) emailFieldVal.textContent = user.email;
+        if (avatar) avatar.textContent = initial;
+    } catch (e) { console.warn('No se pudo cargar el perfil:', e.message); }
+}
 
 const socket = io();
 socket.on('connect', () => {
@@ -39,9 +97,9 @@ socket.on('training_complete', d => onTrainingComplete(d));
 function switchTab(name) {
     document.querySelectorAll('.tab-btn').forEach(b => b.classList.toggle('active', b.dataset.tab === name));
     document.querySelectorAll('.tab-content').forEach(c => c.classList.toggle('active', c.id === `tab-${name}`));
-    if (name === 'rl') loadAgentStatus();
+    if (name === 'model') { loadAgentStatus(); loadEvaluationSection(); }
     if (name === 'history') loadHistory();
-    if (name === 'evaluation') loadEvaluationSection();
+    if (name === 'profile') loadProfile();
 }
 
 // =============================================================================
@@ -386,10 +444,10 @@ async function sendScan(imageData) {
     lastScanData = null;
     
     try {
-        switchTab('nlp');
+        switchTab('scanner');
         const questionText = document.getElementById('questionText');
         questionText.innerHTML = '<span class="spinner-small"></span> Preparing questions...';
-        
+
         scanResults.style.display = 'block';
         scanResults.innerHTML = `
             <div id="scan-status-text" class="status-msg" style="margin-bottom:15px; background:var(--bg-card); padding:10px; border-radius:8px; border-left:4px solid var(--accent)">
@@ -398,7 +456,7 @@ async function sendScan(imageData) {
             <div id="fast-results-preview"></div>
         `;
 
-        const res = await fetch('/api/scan', {
+        const res = await apiFetch('/api/scan', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ image: imageData, session_id: DEVICE_ID }),
@@ -407,7 +465,7 @@ async function sendScan(imageData) {
         const data = await res.json();
         if (data.error) {
             alert(data.error);
-            switchTab('scan');
+            switchTab('scanner');
             return;
         }
 
@@ -456,7 +514,7 @@ function displayScanResults(data) {
                 <span class="spinner"></span>
                 <h3 style="margin-top:20px">Analysis ready, awaiting clinical interview...</h3>
                 <p>Please complete the questions in the "NLP + Voice" tab to see the final diagnosis.</p>
-                <button class="btn btn-accent" style="margin-top:20px" onclick="switchTab('nlp')">Go to interview →</button>
+                <button class="btn btn-accent" style="margin-top:20px" onclick="scrollToInterview()">Go to interview →</button>
             </div>
         `;
         return;
@@ -524,7 +582,7 @@ function displayScanResults(data) {
         html += `<div class="question-box" style="margin-top:16px">
             <div class="question-label">Next step suggested by AI:</div>
             <div class="question-text">${data.next_question}</div>
-            <button class="btn btn-accent" onclick="switchTab('nlp')">Go to voice interview →</button>
+            <button class="btn btn-accent" onclick="scrollToInterview()">Go to voice interview →</button>
         </div>`;
 
         // Update NLP tab question
@@ -565,14 +623,22 @@ function initSpeechRecognition() {
     recognition.onend = () => {
         isListening = false;
         document.getElementById('btnMic').classList.remove('recording');
-        document.getElementById('micIcon').textContent = '🎙️';
-        document.getElementById('micLabel').textContent = 'Press to speak';
+        setMicIcon('mic', 'Press to speak');
     };
     recognition.onerror = (e) => {
         console.log('Speech error:', e.error);
         isListening = false;
         document.getElementById('btnMic').classList.remove('recording');
+        setMicIcon('mic', 'Press to speak');
     };
+}
+
+function setMicIcon(iconName, label) {
+    const iconEl = document.getElementById('micIcon');
+    const labelEl = document.getElementById('micLabel');
+    if (iconEl) iconEl.innerHTML = `<i data-lucide="${iconName}"></i>`;
+    if (labelEl) labelEl.textContent = label;
+    if (window.lucide) lucide.createIcons();
 }
 
 function toggleListening() {
@@ -587,8 +653,7 @@ function toggleListening() {
         recognition.start();
         isListening = true;
         document.getElementById('btnMic').classList.add('recording');
-        document.getElementById('micIcon').textContent = '⏹️';
-        document.getElementById('micLabel').textContent = 'Listening... Press to stop';
+        setMicIcon('square', 'Listening... Press to stop');
     }
 }
 
@@ -630,7 +695,7 @@ async function sendVoiceResponse(text) {
     container.innerHTML = '<div class="empty-state"><span class="spinner"></span><p>Processing...</p></div>';
 
     try {
-        const res = await fetch('/api/voice/process', {
+        const res = await apiFetch('/api/voice/process', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ text, question_id: currentQuestionId, session_id: DEVICE_ID }),
@@ -803,7 +868,7 @@ function initCharts() {
 
 async function loadChartsFromHistory() {
     try {
-        const r = await fetch('/api/rl/status');
+        const r = await apiFetch('/api/rl/status');
         const d = await r.json();
         
         // Los datos históricos suelen estar dentro de 'last_training'
@@ -833,7 +898,7 @@ async function loadChartsFromHistory() {
 async function loadEvaluation() {
     document.getElementById('evalContent').innerHTML = '<span class="spinner"></span> Evaluating...';
     try {
-        const r = await (await fetch('/api/rl/evaluate')).json();
+        const r = await (await apiFetch('/api/rl/evaluate')).json();
         if (r.error) { document.getElementById('evalContent').textContent = r.error; return; }
         document.getElementById('evalContent').innerHTML = `
             <div class="eval-grid">
@@ -849,7 +914,7 @@ async function loadEvaluation() {
 
 async function loadAgentStatus() {
     try {
-        const d = await (await fetch('/api/rl/status')).json();
+        const d = await (await apiFetch('/api/rl/status')).json();
         document.getElementById('agentStatusContent').innerHTML = `
             <div class="eval-grid" style="grid-template-columns:repeat(4,1fr)">
                 <div class="eval-item"><span class="eval-item-label">Model</span><span class="eval-item-value ${d.model_loaded ? 'good' : 'bad'}">${d.model_loaded ? '✅ Loaded' : '❌ Not loaded'}</span></div>
@@ -867,7 +932,7 @@ async function loadAgentStatus() {
                 // Obtener accuracy de síntomas (NLP) para mostrarla aquí también
                 let nlpAccTxt = "—";
                 try {
-                    const nlpRes = await (await fetch('/api/evaluation/results')).json();
+                    const nlpRes = await (await apiFetch('/api/evaluation/results')).json();
                     if (nlpRes.global_accuracy) nlpAccTxt = (nlpRes.global_accuracy * 100).toFixed(1) + "%";
                 } catch(e) {}
 
@@ -907,7 +972,7 @@ async function loadHistory() {
     const list = document.getElementById('historyList');
     list.innerHTML = '<div class="empty-state"><span class="spinner"></span><p>Loading history...</p></div>';
     try {
-        const data = await (await fetch('/api/history?limit=50')).json();
+        const data = await (await apiFetch('/api/history?limit=50')).json();
         if (!data.length) {
             list.innerHTML = '<div class="empty-state"><span class="empty-icon">📋</span><p>No consultations recorded yet</p></div>';
             return;
@@ -981,7 +1046,7 @@ async function deleteConsultation(id, btnEl) {
     card.style.opacity = '0.4';
     card.style.pointerEvents = 'none';
     try {
-        const res = await fetch(`/api/history/${id}`, { method: 'DELETE' });
+        const res = await apiFetch(`/api/history/${id}`, { method: 'DELETE' });
         if (res.ok) {
             card.style.transition = 'all 0.35s ease';
             card.style.transform = 'translateX(60px)';
@@ -1035,7 +1100,7 @@ let evalBarChart = null, evalRadarChart = null;
 async function loadEvaluationSection() {
     // Cargar estado real del modelo desde la API
     try {
-        const st = await (await fetch('/api/nlp/status')).json();
+        const st = await (await apiFetch('/api/nlp/status')).json();
         const badge = document.getElementById('nlpStatusBadge');
         if (badge) {
             if (st.is_trained) {
@@ -1050,7 +1115,7 @@ async function loadEvaluationSection() {
 
     // Cargar últimos resultados de evaluación si existen
     try {
-        const res = await fetch('/api/evaluation/results');
+        const res = await apiFetch('/api/evaluation/results');
         if (res.ok) displayEvalData(await res.json());
     } catch(e) { /* silencioso */ }
 }
@@ -1061,7 +1126,7 @@ async function trainNlpModel() {
     btn.disabled = true;
     btn.innerHTML = '<span class="spinner-small"></span> Training model...';
     try {
-        const res = await fetch('/api/nlp/train', { method: 'POST' });
+        const res = await apiFetch('/api/nlp/train', { method: 'POST' });
         const data = await res.json();
         if (data.status === 'success') {
             await loadEvaluationSection();
@@ -1084,7 +1149,7 @@ async function triggerEvaluation() {
     btn.innerHTML = '<span class="spinner-small"></span> Running Test...';
 
     try {
-        const res = await fetch('/api/evaluation/run', { method: 'POST' });
+        const res = await apiFetch('/api/evaluation/run', { method: 'POST' });
         const data = await res.json();
         
         if (data.error) {
@@ -1211,13 +1276,21 @@ function renderEvalCharts(metrics) {
 // =============================================================================
 function esc(t) { const d = document.createElement('div'); d.textContent = t; return d.innerHTML; }
 
+function scrollToInterview() {
+    switchTab('scanner');
+    const voiceCard = document.querySelector('.voice-card');
+    if (voiceCard) voiceCard.scrollIntoView({ behavior: 'smooth', block: 'start' });
+}
+
 // =============================================================================
 // INIT
 // =============================================================================
 document.addEventListener('DOMContentLoaded', () => {
+    if (window.lucide) lucide.createIcons();
     initCamera();
     initSpeechRecognition();
     initCharts();
     loadAgentStatus();
+    loadProfile();
     // El tab de evaluación se carga en loadEvaluationSection() al hacer clic
 });

@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Iniciar sesión — {{ app_name }}</title>
+    <link rel="stylesheet" href="/static/css/style.css">
+    <script src="https://unpkg.com/lucide@latest"></script>
+</head>
+
+<body>
+    <div class="auth-page">
+        <div class="auth-card">
+            <div class="auth-logo">
+                <div class="auth-logo-icon"><i data-lucide="scan-face"></i></div>
+                <h1>{{ app_name }}</h1>
+                <p>Analiza tus lunares con inteligencia artificial</p>
+            </div>
+
+            <div class="auth-error" id="authError"></div>
+
+            <form id="loginForm" autocomplete="on">
+                <div class="form-field">
+                    <label for="email">Email</label>
+                    <div class="form-field-input">
+                        <i data-lucide="mail"></i>
+                        <input type="email" id="email" name="email" placeholder="tu@email.com" required autocomplete="email">
+                    </div>
+                </div>
+
+                <div class="form-field">
+                    <label for="password">Contraseña</label>
+                    <div class="form-field-input">
+                        <i data-lucide="lock"></i>
+                        <input type="password" id="password" name="password" placeholder="••••••••" required autocomplete="current-password">
+                        <button type="button" class="form-field-toggle" id="togglePassword"><i data-lucide="eye"></i></button>
+                    </div>
+                </div>
+
+                <button type="submit" class="btn btn-primary btn-large auth-submit" id="submitBtn">
+                    <i data-lucide="log-in"></i> Iniciar sesión
+                </button>
+            </form>
+
+            <div class="auth-switch">
+                ¿No tienes cuenta? <a href="/register">Regístrate</a>
+            </div>
+        </div>
+    </div>
+
+    <script src="{{ url_for('static', filename='js/auth.js') }}"></script>
+    <script>
+        lucide.createIcons();
+        setupAuthForm({
+            formId: 'loginForm',
+            endpoint: '/api/auth/login',
+            errorId: 'authError',
+            submitId: 'submitBtn',
+            buildPayload: () => ({
+                email: document.getElementById('email').value.trim(),
+                password: document.getElementById('password').value,
+            }),
+        });
+        setupPasswordToggle('togglePassword', 'password');
+    </script>
+</body>
+
+</html>

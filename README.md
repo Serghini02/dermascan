@@ -1,4 +1,4 @@
-#  DermaScan — Intelligent Mole Scanner
+#  EpidermAI — Intelligent Mole Scanner
 
 AI-powered application for dermatological mole analysis using Computer Vision, Deep Learning (CNN), Reinforcement Learning (DQN), and Natural Language Processing (NLP).
 

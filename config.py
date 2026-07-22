@@ -1,7 +1,12 @@
 """
-Configuración centralizada — DermaScan
+Configuración centralizada — EpidermAI
 """
 import os
+
+# =============================================================================
+# APP
+# =============================================================================
+APP_NAME = "EpidermAI"
 
 # =============================================================================
 # PATHS
@@ -10,6 +15,16 @@ BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 DATABASE_PATH = os.path.join(BASE_DIR, "database", "dermascan.db")
 MODELS_DIR = os.path.join(BASE_DIR, "models")
 DATA_DIR = os.path.join(BASE_DIR, "data")
+
+# =============================================================================
+# AUTH / JWT
+# =============================================================================
+JWT_SECRET = os.environ.get("JWT_SECRET", "epidermai-dev-jwt-secret-change-in-prod")
+JWT_ALGORITHM = "HS256"
+JWT_ACCESS_EXPIRES_MIN = 30
+JWT_REFRESH_EXPIRES_DAYS = 7
+LOGIN_MAX_ATTEMPTS = 5
+LOGIN_LOCKOUT_MINUTES = 15
 
 # HAM10000 — se resuelve dinámicamente
 HAM10000_DIR = None  # Se setea en runtime al detectar la ubicación
