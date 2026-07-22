@@ -1,5 +1,5 @@
 """
-Servidor Flask — DermaScan: Escáner Inteligente de Lunares
+Servidor Flask — EpidermAI: Escáner Inteligente de Lunares
 Integra CNN (PyTorch), NLP (tokenización + voz), y DRL (DQN).
 """
 
@@ -14,7 +14,7 @@ import numpy as np
 from PIL import Image
 from io import BytesIO
 
-from flask import Flask, render_template, request, jsonify, send_file
+from flask import Flask, render_template, request, jsonify, send_file, redirect, g
 from flask_socketio import SocketIO
 import tempfile
 import subprocess
@@ -25,8 +25,9 @@ import edge_tts
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
 from config import (
-    FLASK_HOST, FLASK_PORT, FLASK_DEBUG, DATABASE_PATH,
-    DIAGNOSIS_CLASSES, RISK_LEVELS, SYMPTOM_QUESTIONS, ACTION_NAMES
+    FLASK_HOST, FLASK_PORT, FLASK_DEBUG, DATABASE_PATH, APP_NAME,
+    DIAGNOSIS_CLASSES, RISK_LEVELS, SYMPTOM_QUESTIONS, ACTION_NAMES,
+    LOGIN_LOCKOUT_MINUTES
 )
 from database.db_manager import DatabaseManager
 from vision.cnn_model import SkinClassifier
@@ -41,12 +42,20 @@ from rl.train import train_agent, evaluate_agent
 from vision.expert_system import MedicalExpertSystem
 from vision.metaheuristic_tuner import GeneticOptimizer
 
+from auth.security import (
+    hash_password, verify_password, validate_email, validate_password, validate_name
+)
+from auth.jwt_utils import create_access_token, create_refresh_token, hash_token_id, decode_token
+from auth.cookies import set_auth_cookies, clear_auth_cookies
+from auth.decorators import login_required, login_required_page, csrf_protect, _get_current_user
+from auth.rate_limit import is_locked_out, register_failure, reset as reset_login_attempts
+
 # =============================================================================
 # INIT
 # =============================================================================
 
 app = Flask(__name__)
-app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY', 'dermascan-dev-2026')
+app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY', 'epidermai-dev-2026')
 IS_PRODUCTION = os.environ.get('FLASK_ENV') == 'production'
 socketio = SocketIO(app, cors_allowed_origins="*", async_mode='eventlet' if IS_PRODUCTION else None)
 
@@ -58,7 +67,7 @@ dqn_agent.load()
 tokenizer = get_tokenizer()
 expert_system = MedicalExpertSystem()
 
-# Almacén de sesiones por Socket ID (multi-usuario)
+# Almacén de sesiones de escaneo, aislado por usuario + dispositivo
 sessions_store = {}
 
 def get_session(sid):
@@ -72,6 +81,10 @@ def get_session(sid):
             "image_data": None,
         }
     return sessions_store[sid]
+
+
+def scan_session_key(user_id, device_id):
+    return f"{user_id}:{device_id}"
 
 # Detectar y cargar HAM10000
 def init_ham10000():
@@ -103,8 +116,133 @@ else:
 # =============================================================================
 
 @app.route('/')
+@login_required_page
 def index():
-    return render_template('index.html')
+    return render_template('index.html', app_name=APP_NAME, user=g.user)
+
+
+@app.route('/login')
+def login_page():
+    if _get_current_user():
+        return redirect('/')
+    return render_template('login.html', app_name=APP_NAME)
+
+
+@app.route('/register')
+def register_page():
+    if _get_current_user():
+        return redirect('/')
+    return render_template('register.html', app_name=APP_NAME)
+
+
+# =============================================================================
+# RUTAS — AUTENTICACIÓN
+# =============================================================================
+
+def _client_key():
+    """Clave para el rate limiter: IP + email objetivo."""
+    return request.remote_addr or "unknown"
+
+
+@app.route('/api/auth/register', methods=['POST'])
+def auth_register():
+    data = request.json or {}
+    name = (data.get('name') or '').strip()
+    email = (data.get('email') or '').strip().lower()
+    password = data.get('password') or ''
+
+    for err in (validate_name(name), validate_email(email), validate_password(password)):
+        if err:
+            return jsonify({"error": err}), 400
+
+    if db.get_user_by_email(email):
+        return jsonify({"error": "Ya existe una cuenta con ese email."}), 409
+
+    user_id = db.create_user(name, email, hash_password(password))
+    user = {"id": user_id, "name": name, "email": email}
+
+    access_token = create_access_token(user)
+    refresh_token, jti, expires_at = create_refresh_token(user_id)
+    db.save_refresh_token(user_id, hash_token_id(jti), expires_at.isoformat())
+
+    resp = jsonify({"user": user})
+    return set_auth_cookies(resp, access_token, refresh_token, IS_PRODUCTION)
+
+
+@app.route('/api/auth/login', methods=['POST'])
+def auth_login():
+    data = request.json or {}
+    email = (data.get('email') or '').strip().lower()
+    password = data.get('password') or ''
+    limiter_key = f"{_client_key()}:{email}"
+
+    if is_locked_out(limiter_key):
+        return jsonify({
+            "error": f"Demasiados intentos fallidos. Inténtalo de nuevo en {LOGIN_LOCKOUT_MINUTES} minutos."
+        }), 429
+
+    user_row = db.get_user_by_email(email) if email else None
+    if not user_row or not verify_password(password, user_row['password_hash']):
+        register_failure(limiter_key)
+        return jsonify({"error": "Email o contraseña incorrectos."}), 401
+
+    reset_login_attempts(limiter_key)
+    user = {"id": user_row["id"], "name": user_row["name"], "email": user_row["email"]}
+
+    access_token = create_access_token(user)
+    refresh_token, jti, expires_at = create_refresh_token(user["id"])
+    db.save_refresh_token(user["id"], hash_token_id(jti), expires_at.isoformat())
+
+    resp = jsonify({"user": user})
+    return set_auth_cookies(resp, access_token, refresh_token, IS_PRODUCTION)
+
+
+@app.route('/api/auth/refresh', methods=['POST'])
+def auth_refresh():
+    token = request.cookies.get('refresh_token')
+    if not token:
+        return jsonify({"error": "No autenticado"}), 401
+
+    payload = decode_token(token, expected_type="refresh")
+    if not payload:
+        return jsonify({"error": "Sesión expirada, inicia sesión de nuevo."}), 401
+
+    token_hash = hash_token_id(payload["jti"])
+    stored = db.get_refresh_token(token_hash)
+    if not stored or stored["revoked"]:
+        return jsonify({"error": "Sesión revocada, inicia sesión de nuevo."}), 401
+
+    # Rotación: revocar el token usado y emitir uno nuevo
+    db.revoke_refresh_token(token_hash)
+
+    user_row = db.get_user_by_id(payload["sub"])
+    if not user_row:
+        return jsonify({"error": "Usuario no encontrado"}), 401
+
+    user = {"id": user_row["id"], "name": user_row["name"], "email": user_row["email"]}
+    access_token = create_access_token(user)
+    new_refresh_token, jti, expires_at = create_refresh_token(user["id"])
+    db.save_refresh_token(user["id"], hash_token_id(jti), expires_at.isoformat())
+
+    resp = jsonify({"user": user})
+    return set_auth_cookies(resp, access_token, new_refresh_token, IS_PRODUCTION)
+
+
+@app.route('/api/auth/logout', methods=['POST'])
+def auth_logout():
+    token = request.cookies.get('refresh_token')
+    if token:
+        payload = decode_token(token, expected_type="refresh")
+        if payload:
+            db.revoke_refresh_token(hash_token_id(payload["jti"]))
+    resp = jsonify({"status": "logged_out"})
+    return clear_auth_cookies(resp)
+
+
+@app.route('/api/auth/me', methods=['GET'])
+@login_required
+def auth_me():
+    return jsonify({"user": g.user})
 
 
 # =============================================================================
@@ -142,27 +280,40 @@ def background_heavy_analysis(session_id, img_pil, img_bgr, image_b64):
         socketio.emit('scan_error', {'error': str(e)}, to=session_id)
 
 
+@socketio.on('connect')
+def handle_connect():
+    """Rechaza sockets sin una cookie de sesión JWT válida."""
+    user = _get_current_user()
+    if not user:
+        return False
+
+
 @socketio.on('join_session')
 def handle_join(data):
-    """Une al socket a una sala privada basada en su ID de dispositivo."""
-    session_id = data.get('session_id')
-    if session_id:
-        import flask
+    """Une al socket a una sala privada basada en usuario + dispositivo."""
+    user = _get_current_user()
+    device_id = data.get('session_id')
+    if user and device_id:
         from flask_socketio import join_room
-        join_room(session_id)
-        print(f"[WS] Socket {request.sid} se unió a la sala: {session_id}")
+        room = scan_session_key(user["id"], device_id)
+        join_room(room)
+        print(f"[WS] Socket {request.sid} se unió a la sala: {room}")
 
 @app.route('/api/scan', methods=['POST'])
+@login_required
+@csrf_protect
 def scan_image():
     """Escaneo rápido inicial + Lanzamiento de análisis pesado en hilos."""
     data = request.json
     image_b64 = data.get("image", "")
-    session_id = data.get("session_id") # Identificador persistente
-    
+    device_id = data.get("session_id") # Identificador persistente del dispositivo
+
     if not image_b64:
         return jsonify({"error": "No se recibió imagen"}), 400
-    if not session_id:
+    if not device_id:
         return jsonify({"error": "No se recibió Session ID"}), 400
+
+    session_id = scan_session_key(g.user["id"], device_id)
 
     try:
         # Decodificar imagen base64
@@ -224,19 +375,22 @@ def scan_image():
 # =============================================================================
 
 @app.route('/api/voice/process', methods=['POST'])
+@login_required
+@csrf_protect
 def process_voice():
     """Procesa texto transcrito del paciente."""
     try:
         data = request.json
         text = data.get("text", "")
         question_id = data.get("question_id", "")
-        session_id = data.get("session_id") # Identificador persistente
-        
+        device_id = data.get("session_id") # Identificador persistente del dispositivo
+
         if not text.strip():
             return jsonify({"error": "Texto vacío"}), 400
-        if not session_id:
+        if not device_id:
             return jsonify({"error": "No se recibió Session ID"}), 400
 
+        session_id = scan_session_key(g.user["id"], device_id)
         sess = get_session(session_id)
         
         # 1. Corrección regex
@@ -264,7 +418,7 @@ def process_voice():
         is_final = drl_pred["action"] == 6
         diagnosis = None
         if is_final:
-            diagnosis = _finalize_diagnosis(session_id)
+            diagnosis = _finalize_diagnosis(session_id, g.user["id"])
 
         return jsonify({
             "correction": correction,
@@ -286,6 +440,8 @@ def process_voice():
 
 
 @app.route('/api/nlp/tokenize', methods=['POST'])
+@login_required
+@csrf_protect
 def nlp_tokenize():
     """Tokeniza texto puro."""
     data = request.json
@@ -297,6 +453,8 @@ def nlp_tokenize():
 
 
 @app.route('/api/nlp/correct', methods=['POST'])
+@login_required
+@csrf_protect
 def nlp_correct():
     """Corrige texto con regex."""
     data = request.json
@@ -308,6 +466,8 @@ def nlp_correct():
 
 
 @app.route('/api/nlp/train', methods=['POST'])
+@login_required
+@csrf_protect
 def nlp_train():
     """Entrena el extractor de síntomas directamente en la app."""
     try:
@@ -321,6 +481,7 @@ def nlp_train():
 TTS_CACHE = {}
 
 @app.route('/api/tts')
+@login_required
 def text_to_speech():
     """Genera audio usando Edge-TTS con caché y procesamiento en memoria."""
     text = request.args.get("text", "").strip()
@@ -361,6 +522,7 @@ def text_to_speech():
 
 
 @app.route('/api/nlp/status', methods=['GET'])
+@login_required
 def nlp_status():
     """Estado del extractor de síntomas ML."""
     return jsonify({
@@ -375,6 +537,8 @@ def nlp_status():
 # =============================================================================
 
 @app.route('/api/rl/train', methods=['POST'])
+@login_required
+@csrf_protect
 def rl_train():
     """Inicia entrenamiento del DRL."""
     data = request.json or {}
@@ -397,6 +561,8 @@ def rl_train():
     return jsonify({"status": "training_started", "episodes": episodes})
 
 @app.route('/api/optimize', methods=['POST'])
+@login_required
+@csrf_protect
 def run_optimization():
     """Ejecuta la búsqueda metaheurística de hiperparámetros."""
     def run():
@@ -409,11 +575,13 @@ def run_optimization():
 
 
 @app.route('/api/rl/evaluate', methods=['GET'])
+@login_required
 def rl_evaluate():
     return jsonify(evaluate_agent(num_episodes=50, db_path=DATABASE_PATH))
 
 
 @app.route('/api/rl/status', methods=['GET'])
+@login_required
 def rl_status():
     model_exists = os.path.exists("models/dqn_dermascan.pth")
     status = {
@@ -442,26 +610,31 @@ def rl_status():
 # =============================================================================
 
 @app.route('/api/history', methods=['GET'])
+@login_required
 def get_history():
     limit = request.args.get("limit", 20, type=int)
-    return jsonify(db.get_consultations(limit=limit))
+    return jsonify(db.get_consultations(g.user["id"], limit=limit))
 
 
 @app.route('/api/history/<int:consultation_id>', methods=['DELETE'])
+@login_required
+@csrf_protect
 def delete_history(consultation_id):
-    """Elimina una consulta del historial."""
-    success = db.delete_consultation(consultation_id)
+    """Elimina una consulta del historial, solo si pertenece al usuario autenticado."""
+    success = db.delete_consultation(g.user["id"], consultation_id)
     if success:
         return jsonify({"status": "deleted", "id": consultation_id})
     return jsonify({"error": "Consultation not found"}), 404
 
 
 @app.route('/api/dataset/stats', methods=['GET'])
+@login_required
 def dataset_stats():
     return jsonify(db.get_ham10000_stats())
 
 
 @app.route('/api/evaluation/results', methods=['GET'])
+@login_required
 def get_evaluation_results():
     """Sirve los resultados existentes."""
     path = os.path.join(os.path.dirname(__file__), "evaluation", "evaluation_results.json")
@@ -472,6 +645,8 @@ def get_evaluation_results():
 
 
 @app.route('/api/evaluation/run', methods=['POST'])
+@login_required
+@csrf_protect
 def run_evaluation():
     """Ejecuta el script de evaluación y devuelve los nuevos resultados."""
     import subprocess
@@ -555,7 +730,7 @@ def _get_question_text(action):
     return ""
 
 
-def _finalize_diagnosis(sid):
+def _finalize_diagnosis(sid, user_id):
     """Genera el diagnóstico final con toda la info acumulada."""
     sess = get_session(sid)
     cnn = sess.get("cnn_result", {})
@@ -565,8 +740,9 @@ def _finalize_diagnosis(sid):
     # Generar diagnóstico refinado mediante el Sistema Experto (Reglas)
     expert_result = expert_system.apply_rules(cnn, abcde, symptoms)
 
-    # Guardar en BD (incluyendo la imagen de la sesión)
+    # Guardar en BD (incluyendo la imagen de la sesión), aislado por usuario
     db.add_consultation(
+        user_id=user_id,
         cnn_diagnosis=cnn.get("diagnosis_code"),
         image_data=sess.get("image_data"),
         cnn_confidence=cnn.get("confidence", 0),
@@ -619,7 +795,7 @@ def _generate_recommendation(cnn, abcde, symptoms):
 
 if __name__ == '__main__':
     print(f"\n{'='*60}")
-    print(f"  🔬 DermaScan — Escáner Inteligente de Lunares")
+    print(f"  🔬 {APP_NAME} — Escáner Inteligente de Lunares")
     print(f"  URL: http://localhost:{FLASK_PORT}")
     print(f"  HAM10000: {'✅ Cargado' if ham10000_path else '❌ No disponible'}")
     print(f"  CNN: {'✅ Cargada' if classifier.loaded else '❌ Modelo no encontrado'}")

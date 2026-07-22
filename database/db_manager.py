@@ -24,8 +24,30 @@ class DatabaseManager:
         c = conn.cursor()
 
         c.execute("""
+            CREATE TABLE IF NOT EXISTS users (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                name TEXT NOT NULL,
+                email TEXT NOT NULL UNIQUE,
+                password_hash TEXT NOT NULL,
+                created_at TEXT NOT NULL
+            )
+        """)
+
+        c.execute("""
+            CREATE TABLE IF NOT EXISTS refresh_tokens (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                user_id INTEGER NOT NULL,
+                token_hash TEXT NOT NULL UNIQUE,
+                expires_at TEXT NOT NULL,
+                revoked INTEGER NOT NULL DEFAULT 0,
+                created_at TEXT NOT NULL
+            )
+        """)
+
+        c.execute("""
             CREATE TABLE IF NOT EXISTS consultations (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
+                user_id INTEGER,
                 timestamp TEXT NOT NULL,
                 image_path TEXT,
                 image_data TEXT,
@@ -53,16 +75,83 @@ class DatabaseManager:
             )
         """)
 
-        # Migración: añadir image_data si no existe (bases de datos antiguas)
+        # Migraciones para bases de datos antiguas (pre-EpidermAI)
         try:
             c.execute("ALTER TABLE consultations ADD COLUMN image_data TEXT")
         except Exception:
             pass  # La columna ya existe
 
+        c.execute("PRAGMA table_info(consultations)")
+        columns = [row[1] for row in c.fetchall()]
+        if "user_id" not in columns:
+            # Los registros previos no tienen propietario: se descartan al
+            # introducir el aislamiento de datos por usuario.
+            c.execute("DELETE FROM consultations")
+            c.execute("ALTER TABLE consultations ADD COLUMN user_id INTEGER")
+
         conn.commit()
         conn.close()
 
-    def add_consultation(self, image_path=None, image_data=None, cnn_diagnosis=None,
+    # =========================================================================
+    # USUARIOS Y TOKENS
+    # =========================================================================
+    def create_user(self, name, email, password_hash):
+        conn = self._get_conn()
+        c = conn.cursor()
+        c.execute(
+            "INSERT INTO users (name, email, password_hash, created_at) VALUES (?, ?, ?, ?)",
+            (name, email.lower(), password_hash, datetime.now().isoformat()),
+        )
+        conn.commit()
+        uid = c.lastrowid
+        conn.close()
+        return uid
+
+    def get_user_by_email(self, email):
+        conn = self._get_conn()
+        c = conn.cursor()
+        c.execute("SELECT * FROM users WHERE email = ?", (email.lower(),))
+        row = c.fetchone()
+        conn.close()
+        return dict(row) if row else None
+
+    def get_user_by_id(self, user_id):
+        conn = self._get_conn()
+        c = conn.cursor()
+        c.execute("SELECT * FROM users WHERE id = ?", (user_id,))
+        row = c.fetchone()
+        conn.close()
+        return dict(row) if row else None
+
+    def save_refresh_token(self, user_id, token_hash, expires_at):
+        conn = self._get_conn()
+        c = conn.cursor()
+        c.execute(
+            "INSERT INTO refresh_tokens (user_id, token_hash, expires_at, created_at) VALUES (?, ?, ?, ?)",
+            (user_id, token_hash, expires_at, datetime.now().isoformat()),
+        )
+        conn.commit()
+        conn.close()
+
+    def get_refresh_token(self, token_hash):
+        conn = self._get_conn()
+        c = conn.cursor()
+        c.execute("SELECT * FROM refresh_tokens WHERE token_hash = ?", (token_hash,))
+        row = c.fetchone()
+        conn.close()
+        return dict(row) if row else None
+
+    def revoke_refresh_token(self, token_hash):
+        conn = self._get_conn()
+        c = conn.cursor()
+        c.execute("UPDATE refresh_tokens SET revoked = 1 WHERE token_hash = ?", (token_hash,))
+        conn.commit()
+        conn.close()
+
+    # =========================================================================
+    # CONSULTAS (aisladas por usuario)
+    # =========================================================================
+    def add_consultation(self, user_id, image_path=None, image_data=None, cnn_diagnosis=None,
                          cnn_confidence=0.0, cnn_probabilities=None,
                          symptoms=None, abcde_scores=None,
                          drl_diagnosis=None, risk_level=None,
@@ -71,12 +160,12 @@ class DatabaseManager:
         c = conn.cursor()
         c.execute("""
             INSERT INTO consultations
-            (timestamp, image_path, image_data, cnn_diagnosis, cnn_confidence,
+            (user_id, timestamp, image_path, image_data, cnn_diagnosis, cnn_confidence,
              cnn_probabilities, symptoms, abcde_scores,
              drl_diagnosis, risk_level, questions_asked, final_recommendation)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         """, (
-            datetime.now().isoformat(), image_path, image_data, cnn_diagnosis,
+            user_id, datetime.now().isoformat(), image_path, image_data, cnn_diagnosis,
             cnn_confidence,
             json.dumps(cnn_probabilities) if cnn_probabilities else None,
             json.dumps(symptoms) if symptoms else None,
@@ -88,20 +177,23 @@ class DatabaseManager:
         conn.close()
         return cid
 
-    def delete_consultation(self, consultation_id):
-        """Elimina una consulta del historial por su ID."""
+    def delete_consultation(self, user_id, consultation_id):
+        """Elimina una consulta del historial, solo si pertenece al usuario."""
         conn = self._get_conn()
         c = conn.cursor()
-        c.execute("DELETE FROM consultations WHERE id = ?", (consultation_id,))
+        c.execute("DELETE FROM consultations WHERE id = ? AND user_id = ?", (consultation_id, user_id))
         affected = c.rowcount
         conn.commit()
         conn.close()
         return affected > 0
 
-    def get_consultations(self, limit=50):
+    def get_consultations(self, user_id, limit=50):
         conn = self._get_conn()
         c = conn.cursor()
-        c.execute("SELECT * FROM consultations ORDER BY id DESC LIMIT ?", (limit,))
+        c.execute(
+            "SELECT * FROM consultations WHERE user_id = ? ORDER BY id DESC LIMIT ?",
+            (user_id, limit),
+        )
         rows = []
         for r in c.fetchall():
             d = dict(r)
